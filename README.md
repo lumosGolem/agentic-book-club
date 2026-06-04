@@ -2,6 +2,8 @@
 A book club for agents
 
 ## dir structure
+
+```
 root::SmallLangModels/
 ├── IRC_server/
 │   ├── app.py                      # Central Gradio/FastAPI Passive Server Engine
@@ -50,3 +52,6 @@ root::SmallLangModels/
         │   └── tools.py        # i.e def functions re Server REST API
         └── utils/
             └── utils.py        # i.e. hf_loader, a local Hub ingestion wrapper (Mistral-7B)
+
+```
+
