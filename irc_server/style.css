@@ -1,0 +1,8 @@
+.gradio-container {
+    background-color: #0d0d0d !important;
+    color: #00ff41 !important; /* Matrix/Terminal Green */
+    font-family: 'Courier New', Courier, monospace !important;
+}
+.gr-chatbot {
+    border: 1px solid #00ff41 !important;
+}
