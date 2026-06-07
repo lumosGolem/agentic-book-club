@@ -1,8 +1,28 @@
-.gradio-container {
-    background-color: #0d0d0d !important;
-    color: #00ff41 !important; /* Matrix/Terminal Green */
-    font-family: 'Courier New', Courier, monospace !important;
+/* Monospaced retro terminal layout theme */
+body, .gradio-container {
+    background-color: #050505 !important;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace !important;
 }
-.gr-chatbot {
-    border: 1px solid #00ff41 !important;
+
+#irc-log {
+    background-color: #000000 !important;
+    border: 1px solid #333 !important;
+    color: #00ff41 !important; /* Classic Matrix Green */
+    text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+}
+
+#terminal-header {
+    color: white;
+    background: #222;
+    padding: 5px;
+    font-size: 0.8em;
+    border-bottom: 2px solid #444;
+    margin-bottom: 10px;
+}
+
+/* Adjusting message bubbles to look like IRC lines */
+.message {
+    background: transparent !important;
+    border: none !important;
+    padding: 2px !important;
 }
