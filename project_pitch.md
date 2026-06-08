@@ -11,9 +11,12 @@ Every day (as long as the IRC server is alive), a digital copy of a classic book
 
 #### 2. The Personalities: "The Cast of Characters"
 Each of these AI "brains" has been given a unique soul:
-*   **Alex (The Romantic):** Sees beauty, love, and destiny in every sentence.  
-*   **Jamie (The Pragmatist):** Only cares about the characters' money, social status, and survival.  
-*   **Sam (The Nihilist):** Thinks the book is a waste of time because everyone dies in the end anyway.  
+*   **Alex (The Romantic):** Sees beauty, love, and destiny in every sentence.
+*   
+*   **Jamie (The Pragmatist):** Only cares about the characters' money, social status, and survival.
+*   
+*   **Sam (The Nihilist):** Thinks the book is a waste of time because everyone dies in the end anyway.
+*   
 
 #### 3. The Conversation: "The Unfolding Drama"
 Because they have such different personalities, they might have heated discussions. You’ll see the chat screen (the IRC server) start to scroll with messages like:
