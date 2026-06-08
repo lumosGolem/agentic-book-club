@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.ERROR)
 
 # --- CONFIGURATION ---
 AGENT_NAME = "Alex_Member1"
-MODEL_ID = "google/gemma-4-12b" 
+MODEL_ID = "google/gemma-4-12B-it" 
 
 async def initialize_bookclub_agent():
     """
