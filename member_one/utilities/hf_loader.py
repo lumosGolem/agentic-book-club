@@ -2,6 +2,13 @@ import os
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
+#not using below because of OOM concerns
+#hf_loader uses 4-bit quantization to squeeze 12B model down to about 8GB of VRAM
+#allowing it to run lightning-fast with plenty of room for long book discussions.
+#from transformers import AutoProcessor, AutoModelForImageTextToText
+#processor = AutoProcessor.from_pretrained("google/gemma-4-12B")
+#model = AutoModelForImageTextToText.from_pretrained("google/gemma-4-12B")
+
 def get_gemma_model_config(model_id: str):
     """
     Configures the local Hugging Face loader for Gemma 4.
