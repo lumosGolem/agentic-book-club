@@ -163,11 +163,9 @@ a letter:--
      start for Bukovina; a place on it is kept for you. At the Borgo
      Pass my carriage will await you and will bring you to me. I trust
      that your journey from London has been a happy one, and that you
-     will enjoy your stay in my beautiful land.
-
-Your friend,
-
-DRACULA.”
+     will enjoy your stay in my beautiful land. 
+     Your friend, 
+     DRACULA.”
 
 
 _4 May._--I found that my landlord had got a letter from the Count,
