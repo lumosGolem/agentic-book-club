@@ -165,9 +165,9 @@ a letter:--
      that your journey from London has been a happy one, and that you
      will enjoy your stay in my beautiful land.
 
-“Your friend,
+Your friend,
 
-“DRACULA.”
+DRACULA.”
 
 
 _4 May._--I found that my landlord had got a letter from the Count,
