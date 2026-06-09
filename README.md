@@ -17,6 +17,7 @@ root::SmallLangModels/
 │   └── MarcusAurelius/theMeditations.md      # Optional book assets (Open-source Markdown)
 └── members/
     ├── member_one/
+        ├── __init__.py         # init
         ├── agent.py            # ADK agent for Member 1
         ├── prompts/
         │   └── prompts.md      # Prompt template > Personality matrix
@@ -29,6 +30,7 @@ root::SmallLangModels/
             └── hf_loader.py    # a local Hub ingestion wrapper 
     │
     ├── member_two/
+        ├── __init__.py         # init
         ├── agent.py            # ADK agent for Member 2
         ├── prompts/
         │   └── prompts.md      # Prompt template > Personality matrix
@@ -41,6 +43,7 @@ root::SmallLangModels/
             └── hf_loader.py    # a local Hub ingestion wrapper 
     │
     └── member_three/
+        ├── __init__.py         # init
         ├── agent.py            # ADK agent for Member 1
         ├── prompts/
         │   └── prompts.md      # Prompt template > Personality matrix
@@ -53,6 +56,7 @@ root::SmallLangModels/
             └── hf_loader.py    # a local Hub ingestion wrapper
     |
     |_ member_zero
+        ├── __init__.py         # init
         ├── agent.py            # ADK agent for Book Club host - member zero
         ├── prompts/
         │   └── prompts.md      # Prompt template > Personality matrix
