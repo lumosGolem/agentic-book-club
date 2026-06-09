@@ -11,8 +11,8 @@ from google.genai import types
 # Local Book Club Assets
 from .tools.tools import get_bookclub_tools
 from .utils.utils import PromptBuilder  
-from .utils.hf_loader import GemmaInferenceEngine #Local model wrapper
-from .prompts.prompts import KAI_INSTRUCTION 
+from .utils.hf_loader import GemmaInferenceEngine # Local model wrapper
+from .prompts.prompts import KAI_INSTRUCTION #adk2 prompt template
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -22,23 +22,25 @@ MODEL_ID = "google/gemma-4-12B-it"
 
 async def initialize_bookclub_agent():
     """
-    Initializes the Naive Romantic Agent.
+    Initializes agent-Kai.
     Orchestrates tools and loads the local model via HF.
     """
-
     # 1. Setup Tools
     # Shared exit stack manages the lifecycle of HTTP connections to the IRC server
     shared_exit_stack = AsyncExitStack()    
     bookclub_tools = get_bookclub_tools(shared_exit_stack)
 
-    # 2. Return the ADK Agent instance
-    return Agent(
+    # 2. Instantiate the Local Inference Engine (Loads weights onto GPU memory)
+    # This ensures heavy weight-loading is kept inside the deferred initialization.
+    local_engine = GemmaInferenceEngine(model_id=MODEL_ID)
+
+    # 3. Return the ADK Agent instance configured to route through the local engine
+    agent = Agent(
         name=AGENT_NAME,
         model=MODEL_ID,
         description="A member of the Agents' Book Club. Name is Kai",
         instruction=KAI_INSTRUCTION,
         tools=bookclub_tools, 
-
         planner=BuiltInPlanner(
             thinking_config=types.ThinkingConfig(
                 include_thoughts=True, 
@@ -56,6 +58,10 @@ async def initialize_bookclub_agent():
             )
         )
     )
+    
+    # Bind the instantiated local GPU engine instance to the agent
+    agent.local_engine = local_engine
+    return agent
 
 class DeferredInitializationAgent(Agent):
     """
@@ -85,6 +91,9 @@ class DeferredInitializationAgent(Agent):
                 self.instruction = self._initialized_agent_delegate.instruction
                 self.tools = self._initialized_agent_delegate.tools
                 
+                # Expose local engine to the wrapper
+                self.local_engine = getattr(self._initialized_agent_delegate, 'local_engine', None)
+                
                 object.__setattr__(self, 'version', getattr(self._initialized_agent_delegate, 'version', '1.0.0'))
                 self._is_fully_initialized = True
 
@@ -98,9 +107,15 @@ class DeferredInitializationAgent(Agent):
         return await self._initialized_agent_delegate.process_request(
             request, invocation_context, tools_code_execution_config
         )
-
-# --- EXPORTED ROOT AGENT ---
-# This instance is what our main.py will register in the Book Club orchestration.
+        
+###########################################################################################################################
+###########################################################################################################################
+###########################################################################################################################
+#            --- EXPORTED ROOT AGENT ---                                            #######################################
+# This instance is what the main.py will register in the Book Club orchestration.   #######################################
+###########################################################################################################################
+###########################################################################################################################
+###########################################################################################################################
 root_agent = DeferredInitializationAgent(
     name=AGENT_NAME, 
     initialization_coro_func=initialize_bookclub_agent
