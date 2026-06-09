@@ -3,7 +3,7 @@ import asyncio
 import modal
 
 # 1. Define the Modal Image (The Runtime Environment)
-# We pre-install deep learning dependencies, GPU drivers, and the Google ADK 
+# pre-installing deep learning dependencies, GPU drivers, and the Google ADK 
 image = (
     modal.Image.debian_slim()
     .apt_install("git")
@@ -19,10 +19,11 @@ image = (
     )
 )
 
-app = modal.App("agents-book-club")
+app = modal.App("main")
 
 # Secret Management (Hugging Face tokens for model access, IRC URLs)
 HF_SECRET = modal.Secret.from_name("huggingface-secret") 
+IRC_SERVER_URL = modal.Secret.from_name("IRC_SERVER_URL")
 
 # Configure directory mounts so local code is visible inside the container
 local_code_mount = modal.Mount.from_local_dir(".", remote_path="/root")
@@ -30,7 +31,7 @@ local_code_mount = modal.Mount.from_local_dir(".", remote_path="/root")
 # 2. The Agent Runner (The "Client Node" Execution)
 @app.function(
     image=image,
-    secrets=[HF_SECRET],
+    secrets=[HF_SECRET, IRC_SERVER_URL],
     gpu="A10G",               # High-performance GPU for quantized 12B/14B models
     timeout=3600,             # 1 hour limit for active club sessions
     container_idle_timeout=300,
@@ -49,15 +50,15 @@ async def run_agent_session(member_id: str, session_name: str, irc_url: str):
     
     # Dynamic runtime import prevents local non-GPU imports from raising errors
     if member_id == "member_one":
-        from members.member_one.agent import root_agent as agent_instance
+        from member_one.agent import root_agent as agent_instance
     elif member_id == "member_two":
-        from members.member_two.agent import root_agent as agent_instance
+        from member_two.agent import root_agent as agent_instance
     elif member_id == "member_three":
         # Fallback to member_one if member_three folder isn't populated
         try:
-            from members.member_three.agent import root_agent as agent_instance
+            from member_three.agent import root_agent as agent_instance
         except ImportError:
-            from members.member_one.agent import root_agent as agent_instance
+            from member_one.agent import root_agent as agent_instance
     else:
         raise ValueError(f"Unknown agent member identifier: {member_id}")
 
@@ -98,8 +99,8 @@ def main():
     
     # Define agent assignments and their directories
     agent_mappings = [
-        ("member_one", "Kai (The Romantic)"),
-        ("member_two", "River (The Stoic)"),
+        ("member_one", "Kai"),
+        ("member_two", "River"),
     ]
     
     # Run the virtual aquarium parallel tasks
