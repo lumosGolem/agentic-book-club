@@ -97,7 +97,9 @@ with gr.Blocks(css="style.css") as demo:
 
     # Set up actions
     launch_btn.click(fn=run_modal_orchestrator, outputs=status_output)
-    gr.Timer(1.0, sync_log, outputs=chatbot)
+   # Updated for Gradio 5.x compatibility
+    timer = gr.Timer(1.0)
+    timer.tick(sync_log, outputs=chatbot)
 
 app = gr.mount_gradio_app(app, demo, path="/")
 
