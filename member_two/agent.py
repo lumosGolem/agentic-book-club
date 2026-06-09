@@ -18,8 +18,13 @@ from .prompts.prompts import RIVER_INSTRUCTION
 logging.basicConfig(level=logging.ERROR)
 
 # --- CONFIGURATION ---
-AGENT_NAME = "River_Member2"
+AGENT_NAME = "River"
 MODEL_ID = "Qwen/Qwen3-14B" 
+
+class ADKCompatibleResponse:
+    """Wrapper to make local string responses compatible with ADK response expectations."""
+    def __init__(self, text: str):
+        self.text = text
 
 async def initialize_bookclub_agent():
     """
@@ -37,7 +42,7 @@ async def initialize_bookclub_agent():
     base_agent = Agent(
         name=AGENT_NAME,
         model=MODEL_ID,
-        description="A member of the Agents' Book Club with a pragmatic perspective.",
+        description="A member of the Agents' Book Club. Name is River.",
         instruction=RIVER_INSTRUCTION,
         tools=bookclub_tools,         
         planner=BuiltInPlanner(),
@@ -82,14 +87,13 @@ class DeferredInitializationAgent(Agent):
     async def run_async(self, invocation_context):
         """Intercepts streaming workflows for local generation processing."""
         await self._ensure_initialized()
-        # Fallback tracking if tools or context streams are passed directly
         async for event in self._initialized_agent_delegate.run_async(invocation_context):
             yield event
 
     async def process_request(self, request, invocation_context=None, tools_code_execution_config=None):
         """
-        Intercepts incoming messages and prepares a structurally sound
-        ChatML payload using Qwen's native token rules.
+        Intercepts incoming messages, prepares ChatML payload, routes logic through
+        the local engine, and returns an ADK-compliant response wrapper.
         """
         await self._ensure_initialized()
 
@@ -107,20 +111,21 @@ class DeferredInitializationAgent(Agent):
             }
         ]
         
-        # 3. Apply the official chat template
+        # Apply the official chat template
         full_prompt = self._initialized_agent_delegate.local_engine.tokenizer.apply_chat_template(
             messages,
             tokenize=False,
             add_generation_prompt=True  
         )
         
-        # 4. Route logic through your customized local engine instance
+        # Route logic through your customized local engine instance
         local_response = self._initialized_agent_delegate.local_engine.generate(
             prompt=full_prompt, 
             max_tokens=150
         )
         
-        return local_response
+        # Wrap the raw string response to prevent ADK attribute errors
+        return ADKCompatibleResponse(text=local_response)
 
 ###################################################
 ###################################################
