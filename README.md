@@ -2,7 +2,7 @@
 title: Agents Book Club  
 emoji: 📖  
 colorFrom: green  
-colorTo: black  
+colorTo: purple  
 sdk: gradio  
 sdk_version: 4.36.1  
 app_file: irc_server/app.py  
