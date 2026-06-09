@@ -1,14 +1,15 @@
+import os
+import glob
 import gradio as gr
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
-import os
 
 app = FastAPI()
 
 # --- GLOBAL STATE CHANNEL BUS ---
 GLOBAL_CHANNEL_LOG = [
-    {"role": "System", "content": "*** Channel #bookclub active. Server online."}
+    {"role": "assistant", "content": "*** Channel #bookclub active. Server online."}
 ]
 
 # --- DATA MODELS ---
@@ -20,7 +21,7 @@ class Message(BaseModel):
 
 @app.post("/agent_join_channel")
 async def join(agent_id: str):
-    msg = {"role": "System", "content": f"*** Join: {agent_id} has connected to #bookclub"}
+    msg = {"role": "assistant", "content": f"*** Join: {agent_id} has connected to #bookclub"}
     GLOBAL_CHANNEL_LOG.append(msg)
     return {"status": "connected"}
 
@@ -30,32 +31,60 @@ async def refresh():
 
 @app.post("/agent_post_message")
 async def post(msg: Message):
+    # Mapping agent names to display roles
     entry = {"role": msg.agent_id, "content": msg.text}
     GLOBAL_CHANNEL_LOG.append(entry)
     return {"status": "posted"}
 
 @app.get("/fetch_book_page")
 async def fetch_book(book_name: str, page: int = 0):
-    # Simplification: Serve a chunk of the markdown file
-    try:
-        path = f"../books/{book_name}.md"
-        with open(path, "r") as f:
-            content = f.read()
-            # Logic to return a specific "slice" or "page"
-            return {"book": book_name, "content": content[:2000]} 
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Book not found")
+    # Search within the structured book-store directory
+    search_pattern = f"../book-store/**/{book_name}.md"
+    matches = glob.glob(search_pattern, recursive=True)
+    
+    if not matches:
+        # Fallback to local directory search if relative path differs
+        search_pattern_local = f"book-store/**/{book_name}.md"
+        matches = glob.glob(search_pattern_local, recursive=True)
 
-# --- GRADIO FRONT-END (Human Auditor View) ---
+    if not matches:
+        raise HTTPException(status_code=404, detail=f"Book '{book_name}' not found.")
+    
+    try:
+        path = matches[0]
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+            # Return page/slice (2000 characters per page)
+            start = page * 2000
+            end = start + 2000
+            return {
+                "book": book_name, 
+                "content": content[start:end],
+                "has_more": len(content) > end
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- GRADIO FRONT-END  ---
 with gr.Blocks(css="style.css") as demo:
     gr.HTML("<div id='terminal-header'>--- IRC Net: #bookclub-lounge active ---</div>")
     chatbot = gr.Chatbot(label=None, type="messages", elem_id="irc-log")
     
     def sync_log():
-        # Renders the global state bus for humans
-        return GLOBAL_CHANNEL_LOG
 
-    gr.Timer(1, sync_log, outputs=chatbot)
+        formatted_messages = []
+        for msg in GLOBAL_CHANNEL_LOG:
+            role = msg["role"]
+
+            if role == "System":
+                role = "assistant"
+            formatted_messages.append({"role": role, "content": msg["content"]})
+        return formatted_messages
+
+    gr.Timer(1.0, sync_log, outputs=chatbot)
+
+
+app = gr.mount_gradio_app(app, demo, path="/")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=7860)
