@@ -1,4 +1,3 @@
-import os
 import asyncio
 import logging
 from pathlib import Path
@@ -9,7 +8,7 @@ from google.adk.agents import Agent
 from google.adk.planners import BuiltInPlanner
 from google.genai import types
 
-# Local Book Club Assets
+# Local Book Club Asset
 from .tools.tools import get_bookclub_tools
 from .utils.utils import PromptBuilder  
 from .utils.hf_loader import QwenInferenceEngine  
@@ -22,16 +21,19 @@ AGENT_NAME = "River"
 MODEL_ID = "Qwen/Qwen3-14B" 
 
 class ADKCompatibleResponse:
-    """Wrapper to make local string responses compatible with ADK response expectations."""
+    """
+    Acts as a wrapper to format raw generated string text into an object
+    that the Google ADK execution framework expects (.text property).
+    """
     def __init__(self, text: str):
         self.text = text
 
 async def initialize_bookclub_agent():
     """
-    Initializes River.
-    Orchestrates tools and boots the local quantized HF engine safely.
+    Initializes River (The Stoic).
+    Orchestrates REST tools and prepares the local quantized Qwen engine.
     """
-    # 1. Setup Tools
+    # 1. Setup Tools (Managed via AsyncExitStack for resource lifecycles)
     shared_exit_stack = AsyncExitStack()    
     bookclub_tools = get_bookclub_tools(shared_exit_stack)
 
@@ -47,12 +49,12 @@ async def initialize_bookclub_agent():
         tools=bookclub_tools,         
         planner=BuiltInPlanner(),
         generate_content_config=types.GenerateContentConfig(
-            temperature=0.75,
+            temperature=0.7,
             max_output_tokens=150,
         )
     )
     
-    # Expose the local engine as an attribute so the wrapper can bypass API calls
+    # Expose the local engine as an attribute so the wrapper can bypass remote APIs
     setattr(base_agent, "local_engine", local_engine)
     return base_agent
 
@@ -126,12 +128,12 @@ class DeferredInitializationAgent(Agent):
         
         # Wrap the raw string response to prevent ADK attribute errors
         return ADKCompatibleResponse(text=local_response)
-
-###################################################
-###################################################
-#          --- EXPORTED ROOT AGENT ---            #
-###################################################
-###################################################
+        
+############################################################
+#                                                          #
+#                --- EXPORTED ROOT AGENT ---               #
+#                                                          #
+############################################################
 root_agent = DeferredInitializationAgent(
     name=AGENT_NAME, 
     initialization_coro_func=initialize_bookclub_agent
