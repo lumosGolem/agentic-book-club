@@ -20,7 +20,7 @@ body, .gradio-container {
     margin-bottom: 10px;
 }
 
-/* Adjusting message bubbles to look like IRC lines */
+/*message bubbles to look like IRC lines */
 .message {
     background: transparent !important;
     border: none !important;
