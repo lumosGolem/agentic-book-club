@@ -8,50 +8,61 @@ root::SmallLangModels/
 ├── IRC_server/
 │   ├── app.py                      # Central Gradio/FastAPI Passive Server Engine
 │   ├── style.css                   # Monospaced retro terminal layout theme
-│   └── requirements.txt            # Host-level dependencies (Gradio, etc.)
+│   └── irc_server_readme.md        # IRC level readme
 ├── solution_design.md              # System Architecture
 ├── readme.md                       # this!!
-├── books/
-│   └── pride_and_prejudice.md      # Target book assets (Open-source Markdown)
+├── book-store/
+│   └── WilliamShakespear/RomeoJuliet.md      # Target book assets (Open-source Markdown)
+│   └── BramStoker/Dracula.md                 # Target book assets (Open-source Markdown)
+│   └── MarcusAurelius/theMeditations.md      # Optional book assets (Open-source Markdown)
 └── members/
     ├── member_one/
         ├── agent.py            # ADK agent for Member 1
-        ├── .env                # Local secrets
-        ├── requirements.txt    # Dedicated client dependencies
         ├── prompts/
-        │   └── prompts.md      # Prompt template > Personality matrix: Naive romantic
+        │   └── prompts.md      # Prompt template > Personality matrix
         ├── skills/
-        │   └── skills.md       # SKILLS.md
+        │   └── skills.md       # SKILL.md ;  book club ethiquet
         ├── tools/
-        │   └── tools.py        # i.e def functions re Server REST API
+        │   └── tools.py        # i.e def functions re Server REST API, bookclub tools.
         └── utils/
-            └── utils.py        # i.e. hf_loader, a local Hub ingestion wrapper (Qwen2.5-7B)
+            └── utils.py        # i.e. prompt builder
+            └── hf_loader.py    # a local Hub ingestion wrapper 
     │
     ├── member_two/
         ├── agent.py            # ADK agent for Member 2
-        ├── .env                # Local secrets
-        ├── requirements.txt    # Dedicated client dependencies
         ├── prompts/
-        │   └── prompts.md      # Prompt template > Personality matrix: Pragmatic
+        │   └── prompts.md      # Prompt template > Personality matrix
         ├── skills/
-        │   └── skills.md       # SKILLS.md
+        │   └── skills.md       # SKILL.md ;  book club ethiquet
         ├── tools/
-        │   └── tools.py        # i.e def functions re Server REST API
+        │   └── tools.py        # i.e def functions re Server REST API, bookclub tools.
         └── utils/
-            └── utils.py        # i.e. hf_loader, a local Hub ingestion wrapper (Llama-3.2-3B)
+            └── utils.py        # i.e. prompt builder
+            └── hf_loader.py    # a local Hub ingestion wrapper 
     │
     └── member_three/
-        ├── agent.py            # ADK agent for Member 3
-        ├── .env                # Local secrets
-        ├── requirements.txt    # Dedicated client dependencies
+        ├── agent.py            # ADK agent for Member 1
         ├── prompts/
-        │   └── prompts.md      # Prompt template > Personality matrix: Depressive
+        │   └── prompts.md      # Prompt template > Personality matrix
         ├── skills/
-        │   └── skills.md       # SKILLS.md
+        │   └── skills.md       # SKILL.md ;  book club ethiquet
         ├── tools/
-        │   └── tools.py        # i.e def functions re Server REST API
+        │   └── tools.py        # i.e def functions re Server REST API, bookclub tools.
         └── utils/
-            └── utils.py        # i.e. hf_loader, a local Hub ingestion wrapper (Mistral-7B)
+            └── utils.py        # i.e. prompt builder
+            └── hf_loader.py    # a local Hub ingestion wrapper
+    |
+    |_ member_zero
+        ├── agent.py            # ADK agent for Book Club host - member zero
+        ├── prompts/
+        │   └── prompts.md      # Prompt template > Personality matrix
+        ├── skills/
+        │   └── skills.md       # SKILL.md , book club ethiquet + how to host a book club
+        ├── tools/
+        │   └── tools.py        # i.e def functions re Server REST API, bookclub tools.
+        └── utils/
+            └── utils.py        # i.e. prompt builder
+            └── hf_loader.py    # a local Hub ingestion wrapper 
 
 ```
 
