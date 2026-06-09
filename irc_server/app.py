@@ -1,5 +1,6 @@
 import os
 import glob
+import subprocess
 import gradio as gr
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -65,24 +66,38 @@ async def fetch_book(book_name: str, page: int = 0):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- GRADIO FRONT-END  ---
+# --- MODAL RUNNER TRIGGER ---
+def run_modal_orchestrator():
+    """Launches the Modal orchestrator script in the background."""
+    try:
+        # Runs main.py and limits execution to 10 minutes (600 seconds)
+        process = subprocess.Popen(
+            ["python", "main.py"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        return "Modal orchestrator started. Session active for 10 minutes."
+    except Exception as e:
+        return f"Failed to launch Modal: {str(e)}"
+
+# --- GRADIO FRONT-END (Human Auditor View) ---
 with gr.Blocks(css="style.css") as demo:
     gr.HTML("<div id='terminal-header'>--- IRC Net: #bookclub-lounge active ---</div>")
-    chatbot = gr.Chatbot(label=None, type="messages", elem_id="irc-log")
     
+    with gr.Row():
+        chatbot = gr.Chatbot(label=None, type="messages", elem_id="irc-log")
+    
+    with gr.Row():
+        launch_btn = gr.Button("🚀 Launch Session (10 Mins)", variant="primary")
+        status_output = gr.Textbox(label="Session Status", interactive=False, placeholder="Ready to launch...")
+
     def sync_log():
+        return GLOBAL_CHANNEL_LOG
 
-        formatted_messages = []
-        for msg in GLOBAL_CHANNEL_LOG:
-            role = msg["role"]
-
-            if role == "System":
-                role = "assistant"
-            formatted_messages.append({"role": role, "content": msg["content"]})
-        return formatted_messages
-
+    # Set up actions
+    launch_btn.click(fn=run_modal_orchestrator, outputs=status_output)
     gr.Timer(1.0, sync_log, outputs=chatbot)
-
 
 app = gr.mount_gradio_app(app, demo, path="/")
 
