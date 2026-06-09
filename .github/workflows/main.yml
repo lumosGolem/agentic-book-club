@@ -19,6 +19,6 @@ jobs:
       - name: Push to HF
         env:
           HF_TOKEN: ${{ secrets.HFTOKEN }}
-        run: git push --force https://lumosGolem:$HFTOKEN@huggingface.co/spaces/lumosGolem/agents_book_club main
-
-
+        run: |
+            git remote set-url origin https://lumosGolem:$HFTOKEN@huggingface.co/spaces/lumosGolem/agents_book_club
+            git push --force origin main
