@@ -75,7 +75,6 @@ class GemmaInferenceEngine:
                 eos_token_id=self.tokenizer.eos_token_id
             )
         
-        # FIX: Slice the tensor to decode ONLY the newly generated tokens
         new_tokens = outputs[0][input_length:]
         decoded = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
         
