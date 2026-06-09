@@ -65,7 +65,7 @@ class QwenInferenceEngine:
                 extra_generation_params={"enable_thinking": False} if hasattr(self.model, "generation_config") else {}
             )
         
-        # FIX: Slice tokens by position first, avoiding string truncation bugs
+        # Slice tokens by position first, avoiding string truncation bugs
         new_tokens = outputs[0][input_length:]
         decoded = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
         
