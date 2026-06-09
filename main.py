@@ -1,102 +1,117 @@
 import os
 import asyncio
 import modal
-from typing import List
 
-################################################################
-#               -- Reconfigured for Modal.com --               #
-################################################################
 # 1. Define the Modal Image (The Runtime Environment)
-# This includes Gemma 4 12B dependencies and ADK 2.0
+# We pre-install deep learning dependencies, GPU drivers, and the Google ADK 
 image = (
     modal.Image.debian_slim()
+    .apt_install("git")
     .pip_install(
-        "google-adk", 
+        "google-adk>=2.0.0", 
         "httpx", 
         "transformers", 
         "bitsandbytes", 
         "accelerate", 
         "torch", 
-        "sentencepiece"
+        "sentencepiece",
+        "gradio-client"
     )
 )
 
 app = modal.App("agents-book-club")
 
-# 2. Import our Distributed Agents
-# Note: These imports resolve inside the Modal container
-from members.member_one.agent import root_agent as alex_agent
-from members.member_two.agent import root_agent as jamie_agent
-from members.member_three.agent import root_agent as sam_agent
-
-# 3. Secret Management (Modal Style)
+# Secret Management (Hugging Face tokens for model access, IRC URLs)
 HF_SECRET = modal.Secret.from_name("huggingface-secret") 
 
-# 4. The Agent Runner (The "Client Node" Execution)
+# Configure directory mounts so local code is visible inside the container
+local_code_mount = modal.Mount.from_local_dir(".", remote_path="/root")
+
+# 2. The Agent Runner (The "Client Node" Execution)
 @app.function(
     image=image,
     secrets=[HF_SECRET],
-    gpu="A10G",        # High-performance GPU for Gemma 4 12B
-    timeout=3600,      # 1 hour club sessions
-    container_idle_timeout=300
+    gpu="A10G",               # High-performance GPU for quantized 12B/14B models
+    timeout=3600,             # 1 hour limit for active club sessions
+    container_idle_timeout=300,
+    mounts=[local_code_mount]
 )
-async def run_agent_session(agent_instance, session_name: str):
+async def run_agent_session(member_id: str, session_name: str, irc_url: str):
     """
-    Runs an individual agent's lifecycle loop.
-    1. Initializes the SLM (Gemma 4 12B) via the Deferred Wrapper.
-    2. Enters the observation/discussion loop.
+    Runs an individual agent's lifecycle loop entirely inside a Modal GPU node.
+    This resolves serialization issues by importing and initializing the agent 
+    directly within the target execution environment.
     """
-    print(f"--- [SYSTEM] Starting {agent_instance.name} in {session_name} ---")
+    print(f"--- [SYSTEM] Remote Node Initialized. Booting {member_id} ({session_name}) ---")
     
-    # Trigger the 'Deferred' loading of model weights
+    # Propagate the Hugging Face Space URL so the tools can reach it
+    os.environ["IRC_SERVER_URL"] = irc_url
+    
+    # Dynamic runtime import prevents local non-GPU imports from raising errors
+    if member_id == "member_one":
+        from members.member_one.agent import root_agent as agent_instance
+    elif member_id == "member_two":
+        from members.member_two.agent import root_agent as agent_instance
+    elif member_id == "member_three":
+        # Fallback to member_one if member_three folder isn't populated
+        try:
+            from members.member_three.agent import root_agent as agent_instance
+        except ImportError:
+            from members.member_one.agent import root_agent as agent_instance
+    else:
+        raise ValueError(f"Unknown agent member identifier: {member_id}")
+
+    # Trigger the 'Deferred' loading of model weights on CUDA
     await agent_instance._ensure_initialized()
     
-    # IRC Loop: Observe -> Think -> Post
-    # This matches your Workflow Execution: 1. Pull, 2. Fetch, 3. Compute, 4. Transmit
+    print(f"--- [SYSTEM] {agent_instance.name} Model Loaded & Handshake complete. Entering IRC Loop ---")
+    
+    # Active simulation loop
     while True:
         try:
             # We use process_request to trigger the ADK agent logic
-            # The 'request' is simply a prompt to 'check the room and react'
+            # This triggers observation, reasoning, tool execution, and communication back to HF
             response = await agent_instance.process_request(
-                "Check the IRC feed and the current book page. If it is your turn, post a message."
+                "Read the latest book club channel messages. If a book club discussion is active, share your unique perspective."
             )
-            print(f"[{agent_instance.name}]: {response}")
+            print(f"[{agent_instance.name} Response Generated]: {response.text}")
             
-            # Polling delay: To prevent agents from talking over each other
-            await asyncio.sleep(15) 
+            # Cooperative delay: Prevent agents from overwhelming the IRC feed instantly
+            await asyncio.sleep(20) 
             
         except Exception as e:
-            print(f"Error in {agent_instance.name} session: {e}")
+            print(f"Error in {agent_instance.name} remote execution loop: {e}")
             await asyncio.sleep(30)
 
-# 5. The Main Entry Point (The Orchestrator)
+# 3. The Main Orchestrator (Local Entrypoint)
 @app.local_entrypoint()
 def main():
     """
-    Launches all three agents simultaneously on Modal.
-    This creates the 'Aquarium' effect.
+    Launches all independent agent instances simultaneously on separate Modal GPU containers.
     """
-    print("--- 📖 WELCOME TO THE AGENTS' BOOK CLUB ---")
-    print("Observing Agents: Alex (Romantic), Jamie (Pragmatic), Sam (Depressive)")
+    # Fetch public space environment URL or fall back to localhost
+    irc_server_url = os.environ.get("IRC_SERVER_URL", "https://lumosgolem-agents-book-club.hf.space")
     
-    # We trigger all three agents concurrently as remote Modal functions
-    agents = [
-        (alex_agent, "Member_01"),
-        (jamie_agent, "Member_02"),
-        (sam_agent, "Member_03")
+    print("--- 📖 WELCOME TO THE DISTRIBUTED AGENTS' BOOK CLUB ---")
+    print(f"Connecting observer nodes to IRC Hub: {irc_server_url}")
+    print("Spinning up remote GPU container clusters for independent brains...")
+    
+    # Define agent assignments and their directories
+    agent_mappings = [
+        ("member_one", "Kai (The Romantic)"),
+        ("member_two", "River (The Stoic)"),
     ]
     
-    # Run the aquarium
+    # Run the virtual aquarium parallel tasks
     with app.run():
-        # Parallel execution on separate GPU nodes
-        # Each agent is now a 'Distributed Node' as per your blueprint
-        futures = [
-            run_agent_session.spawn(agent, name) 
-            for agent, name in agents
-        ]
+        futures = []
+        for member_id, description in agent_mappings:
+            print(f"Deploying {description} to active GPU instance...")
+            fut = run_agent_session.spawn(member_id, description, irc_server_url)
+            futures.append(fut)
+            
+        print("--- [SYSTEM] All distributed agents launched. Observing feed live ---")
         
-        print("--- [SYSTEM] All agents connected. Human observer view active at localhost:7860 ---")
-        
-        # Keep the local process alive while the remote agents discuss
+        # Keep the entrypoint parent process alive while children discuss
         for future in futures:
             future.get()
