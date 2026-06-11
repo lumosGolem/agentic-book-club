@@ -1,6 +1,7 @@
 import os
 import glob
 import subprocess
+import datetime
 import gradio as gr
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -9,9 +10,16 @@ import uvicorn
 app = FastAPI()
 
 # --- GLOBAL STATE CHANNEL BUS ---
+# Store messages with timestamps and role identifiers
 GLOBAL_CHANNEL_LOG = [
-    {"role": "assistant", "content": "*** Channel #bookclub active. Server online."}
+    {
+        "role": "assistant", 
+        "content": "⚡ [SYSTEM] IRC Server Online. Port 7860 active. Waiting for orchestrator..."
+    }
 ]
+
+# Track currently connected automated agent nodes
+ACTIVE_AGENTS = set()
 
 # --- DATA MODELS ---
 class Message(BaseModel):
@@ -22,29 +30,45 @@ class Message(BaseModel):
 
 @app.post("/agent_join_channel")
 async def join(agent_id: str):
-    msg = {"role": "assistant", "content": f"*** Join: {agent_id} has connected to #bookclub"}
+    """Called by Modal agents when initializing their cloud session."""
+    ACTIVE_AGENTS.add(agent_id)
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    msg = {
+        "role": "assistant", 
+        "content": f"📡 [{timestamp}] *** JOIN: Agent '{agent_id}' has established connection to #bookclub"
+    }
     GLOBAL_CHANNEL_LOG.append(msg)
-    return {"status": "connected"}
+    return {"status": "connected", "active_agents": list(ACTIVE_AGENTS)}
 
 @app.get("/refresh_irc_feed")
 async def refresh():
+    """Allows active agent brains to scrape historical logs of the chat."""
     return GLOBAL_CHANNEL_LOG
 
 @app.post("/agent_post_message")
 async def post(msg: Message):
-    # Mapping agent names to display roles
-    entry = {"role": msg.agent_id, "content": msg.text}
+    """Receives reasoning/replies sent from the Modal GPU containers."""
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    entry = {
+        "role": msg.agent_id, 
+        "content": f"[{timestamp}] <{msg.agent_id}> {msg.text}"
+    }
     GLOBAL_CHANNEL_LOG.append(entry)
+    # Ensure they are registered in the active roster
+    ACTIVE_AGENTS.add(msg.agent_id)
     return {"status": "posted"}
 
 @app.get("/fetch_book_page")
 async def fetch_book(book_name: str, page: int = 0):
-    # Search within the structured book-store directory
+    """
+    Simulated File System API. 
+    Agents read 2000-character slices of documents from HF storage.
+    """
     search_pattern = f"../book-store/**/{book_name}.md"
     matches = glob.glob(search_pattern, recursive=True)
     
     if not matches:
-        # Fallback to local directory search if relative path differs
+        # Fallback search matching localized directory structures
         search_pattern_local = f"book-store/**/{book_name}.md"
         matches = glob.glob(search_pattern_local, recursive=True)
 
@@ -55,7 +79,6 @@ async def fetch_book(book_name: str, page: int = 0):
         path = matches[0]
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
-            # Return page/slice (2000 characters per page)
             start = page * 2000
             end = start + 2000
             return {
@@ -66,119 +89,161 @@ async def fetch_book(book_name: str, page: int = 0):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- MODAL RUNNER TRIGGER ---
 def run_modal_orchestrator():
-    """Launches the Modal orchestrator script in the background."""
+    """Triggers main.py in the background to spin up Modal's cluster."""
+    # Pre-flight check to verify entrypoint scripts
+    if not os.path.exists("main.py"):
+        return "❌ Error: Could not find 'main.py' in workspace. Ensure repository files are aligned."
+        
     try:
-        # Runs main.py and limits execution to 10 minutes (600 seconds)
-        process = subprocess.Popen(
+        # Start main.py as an isolated background task
+        subprocess.Popen(
             ["python", "main.py"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             text=True
         )
-        return "Modal orchestrator started. Session active for 10 minutes."
+        return "🚀 Modal orchestrator started in background! GPU nodes spinning up (takes ~1-2 min)."
     except Exception as e:
-        return f"Failed to launch Modal: {str(e)}"
-
-
-# --- EMBEDDED RETRO IRC TERMINAL CSS ---
+        return f"❌ Failed to run main.py: {str(e)}"
 
 terminal_css = """
-/* Force a unified terminal dark theme on HF Spaces */
+/* Theme foundation */
 body, .gradio-container {
-    background-color: #0b0f19 !important;
+    background-color: #060913 !important;
     font-family: 'Courier New', Courier, monospace !important;
-    color: #00ff66 !important;
 }
 
-/* Header styling */
+/* Header style styling */
 #terminal-header {
-    background-color: #111b27;
-    border: 2px solid #00ff66;
-    border-radius: 6px;
-    padding: 12px;
+    background: linear-gradient(90deg, #0f172a 0%, #1e1b4b 100%);
+    border: 1px solid #312e81;
+    border-bottom: 3px solid #6366f1;
+    border-radius: 8px;
+    padding: 16px;
     text-align: center;
     font-weight: bold;
-    font-size: 1.15rem;
-    color: #38bdf8;
-    text-shadow: 0 0 5px rgba(56, 189, 248, 0.5);
-    margin-bottom: 15px;
-    letter-spacing: 1px;
+    font-size: 1.35rem;
+    color: #818cf8;
+    text-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+    margin-bottom: 20px;
+    letter-spacing: 2px;
 }
 
-/* Chatbot Terminal container styling */
+/* Chat container styling */
 #irc-log {
-    background-color: #050811 !important;
-    border: 2px solid #1e293b !important;
-    border-top: 4px solid #00ff66 !important;
+    background-color: #02040a !important;
+    border: 1px solid #1e293b !important;
     border-radius: 8px !important;
-    padding: 10px !important;
-    height: 480px !important;
-    overflow-y: auto !important;
+    padding: 12px !important;
+    height: 520px !important;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8) !important;
 }
 
-/* Make chat bubbles resemble classic terminal lines */
+/* Message Bubble customization */
 #irc-log .message-wrap {
     background: transparent !important;
-    gap: 8px !important;
 }
 
 #irc-log .message {
-    background-color: #111827 !important;
-    border-left: 3px solid #00ff66 !important;
-    color: #f3f4f6 !important;
-    border-radius: 0 8px 8px 0 !important;
-    padding: 10px 14px !important;
-    font-size: 0.95rem !important;
+    background-color: #0f172a !important;
+    border-left: 3px solid #818cf8 !important;
+    color: #e2e8f0 !important;
+    border-radius: 4px !important;
+    margin: 4px 0 !important;
+    padding: 8px 12px !important;
+    font-size: 0.92rem !important;
+    line-height: 1.4 !important;
 }
 
-/* Custom styles for system messages */
+/* Custom colors depending on role names */
 #irc-log .message[data-role="assistant"] {
-    border-left-color: #38bdf8 !important;
-    color: #38bdf8 !important;
+    border-left-color: #14b8a6 !important;
+    color: #14b8a6 !important;
     font-style: italic;
+    background-color: #042f2e !important;
 }
 
-/* Form and UI elements custom coloring */
-.secondary-wrap, input, textarea, select {
-    background-color: #111827 !important;
+/* Dashboard Side Panel design styling */
+.dashboard-panel {
+    background-color: #0f172a !important;
     border: 1px solid #1e293b !important;
-    color: #38bdf8 !important;
+    border-radius: 8px !important;
+    padding: 16px !important;
 }
 
-/* Launch Button customization */
 .primary-btn {
-    background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
     border: none !important;
     font-weight: bold !important;
-    letter-spacing: 0.5px !important;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2) !important;
+    color: white !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3) !important;
+    transition: all 0.2s ease !important;
 }
+
 .primary-btn:hover {
-    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5) !important;
 }
 """
 
-# --- GRADIO FRONT-END (Human Auditor View) ---
-with gr.Blocks(css=terminal_css, theme=gr.themes.Monochrome()) as demo:
-    gr.HTML("<div id='terminal-header'>⚡ IRC Net: #bookclub-lounge ⚡</div>")
+with gr.Blocks(css=terminal_css, theme=gr.themes.Default()) as demo:
+    # App Title Banner
+    gr.HTML("<div id='terminal-header'>⚡ AGENTIC BOOK CLUB // IRC INTERACTION NODE ⚡</div>")
     
     with gr.Row():
-        chatbot = gr.Chatbot(label=None, type="messages", elem_id="irc-log")
-    
-    with gr.Row():
-        launch_btn = gr.Button("🚀 Launch Session (10 Mins)", variant="primary")
-        status_output = gr.Textbox(label="Session Status", interactive=False, placeholder="Ready to launch...")
+        # Left Panel - 70% width for terminal log
+        with gr.Column(scale=7):
+            chatbot = gr.Chatbot(
+                label="📁 #bookclub-lounge Log (Live Feed)", 
+                type="messages", 
+                elem_id="irc-log"
+            )
+            
+        # Right Panel - 30% width for system controls & metrics
+        with gr.Column(scale=3, elem_classes="dashboard-panel"):
+            gr.Markdown("### ⚙️ SYSTEM CONTROL PANEL")
+            
+            # Active agents tracker
+            active_agents_display = gr.Textbox(
+                label="👥 Connected Autonomous Nodes",
+                value="No agents currently online",
+                interactive=False
+            )
+            
+            # Orchestrator Launch Actions
+            launch_btn = gr.Button(
+                "🚀 Launch Cluster Session", 
+                variant="primary", 
+                elem_classes="primary-btn"
+            )
+            
+            status_output = gr.Textbox(
+                label="🛰️ Hub Orchestrator Status", 
+                interactive=False, 
+                placeholder="Awaiting connection..."
+            )
+            
+            gr.Markdown(
+                "**Operator Instructions:**\n"
+                "1. Click the launcher button to wake the distributed orchestrator.\n"
+                "2. System will instantiate dedicated Modal GPU environments.\n"
+                "3. Autonomous nodes will connect automatically via local handshakes."
+            )
 
-    def sync_log():
-        return GLOBAL_CHANNEL_LOG
+    def sync_ui_state():
+        """Updates the chat interface and connected agents counter simultaneously."""
+        connected_list = list(ACTIVE_AGENTS)
+        agents_text = ", ".join(connected_list) if connected_list else "No agents currently online"
+        return GLOBAL_CHANNEL_LOG, agents_text
 
-    # Set up actions
+    # Bind active functions
     launch_btn.click(fn=run_modal_orchestrator, outputs=status_output)
-   # Updated for Gradio 5.x compatibility
+    
+    # Poll backend memory every 1.0 seconds to keep live feed sync'd
     timer = gr.Timer(1.0)
-    timer.tick(sync_log, outputs=chatbot)
+    timer.tick(sync_ui_state, outputs=[chatbot, active_agents_display])
 
 app = gr.mount_gradio_app(app, demo, path="/")
 
