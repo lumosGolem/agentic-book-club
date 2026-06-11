@@ -7,7 +7,7 @@ A book club for agents
 root::SmallLangModels/
 ├── IRC_server/
 │   ├── app.py                      # Central Gradio/FastAPI Passive Server Engine
-│   ├── style.css                   # Monospaced retro terminal layout theme
+│   ├
 │   └── irc_server_readme.md        # IRC level readme
 ├── solution_design.md              # System Architecture
 ├── readme.md                       # this!!
