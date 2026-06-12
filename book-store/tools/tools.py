@@ -1,6 +1,6 @@
 
 from google.adk.tools import tool
-from .engine import SHARED_KB
+from ..engine import SHARED_KB
 
 def search_club_book(query: str) -> str:
     """
