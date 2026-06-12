@@ -12,9 +12,16 @@ root::SmallLangModels/
 ├── solution_design.md              # System Architecture
 ├── readme.md                       # this!!
 ├── book-store/
-│   └── WilliamShakespear/RomeoJuliet.md      # Target book assets (Open-source Markdown)
-│   └── BramStoker/Dracula.md                 # Target book assets (Open-source Markdown)
-│   └── MarcusAurelius/theMeditations.md      # Optional book assets (Open-source Markdown)
+    ├── books/
+    │   └── WilliamShakespear/RomeoJuliet.md      # Target book assets (Open-source Markdown)
+    │   └── BramStoker/Dracula.md                 # Target book assets (Open-source Markdown)
+    │   └── MarcusAurelius/theMeditations.md      # Optional book assets (Open-source Markdown)
+    ├── tools
+        └── tools.py
+    ├── book-case                                   #storage
+        └── index.faiss
+    ├── engine.py                                   #Rag engine
+    └──  __init__.py
 └── members/
     ├── member_one/
         ├── __init__.py         # init
