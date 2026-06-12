@@ -28,6 +28,7 @@ def get_qwen_model_config(model_id: str = "Qwen/Qwen3-14B"):
     # Ensure correct padding mapping for open text generation
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = "left"
 
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
@@ -51,20 +52,25 @@ class QwenInferenceEngine:
         # Generate clean attention inputs
         inputs = self.tokenizer(prompt, return_tensors="pt", return_attention_mask=True).to("cuda")
         input_length = inputs.input_ids.shape[1]
+
+        # Creating a safe kwarg dictionary for generation parameters
+        gen_kwargs = {
+            "max_new_tokens": max_tokens,
+            "temperature": 0.7,
+            "do_sample": True,
+            "pad_token_id": self.tokenizer.pad_token_id,
+            "eos_token_id": self.tokenizer.eos_token_id,
+        }
         
-        # Free memory tracking and enforce non-thinking configurations
+        # If it's a model variant that uses a 'thinking_budget' attribute, set it to 0
+        if hasattr(self.model.config, "thinking_config") or hasattr(self.model.config, "generation_config"):
+            # Direct parameter override for huggingface models that implement internal thinking toggle
+            if "thinking" in getattr(self.model.generation_config, "to_dict", lambda: {})():
+                gen_kwargs["thinking_budget"] = 0 
+        
         with torch.no_grad():
-            outputs = self.model.generate(
-                **inputs, 
-                max_new_tokens=max_tokens,
-                temperature=0.7,
-                do_sample=True,
-                pad_token_id=self.tokenizer.pad_token_id,
-                eos_token_id=self.tokenizer.eos_token_id,
-                # Enforces direct response generation, completely bypassing the hidden <think> delay
-                extra_generation_params={"enable_thinking": False} if hasattr(self.model, "generation_config") else {}
-            )
-        
+            outputs = self.model.generate(**inputs, **gen_kwargs)
+                   
         # Slice tokens by position first, avoiding string truncation bugs
         new_tokens = outputs[0][input_length:]
         decoded = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
