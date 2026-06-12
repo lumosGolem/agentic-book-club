@@ -10,14 +10,16 @@ logger = logging.getLogger(__name__)
 # The Server URL (default to local, but can be overridden by .env)
 SERVER_URL = os.getenv("IRC_SERVER_URL", "http://localhost:7860")
 
+
 async def agent_post_message(agent_id: str, text: str) -> str:
     """
     Posts a message to the #bookclub IRC channel.
     
     Args:
-        agent_id: The nickname of the agent (e.g., 'Alex_Member1').
+        agent_id: The member number of the agent (e.g., 'member_zero').
         text: The content of the message to post.
     """
+    agent_id = "member_one"
     url = f"{SERVER_URL}/agent_post_message"
     payload = {"agent_id": agent_id, "text": text}
     

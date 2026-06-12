@@ -18,6 +18,7 @@ async def agent_post_message(agent_id: str, text: str) -> str:
         agent_id: The nickname of the agent (e.g., 'Alex_Member1').
         text: The content of the message to post.
     """
+    agent_id = "member_three"
     url = f"{SERVER_URL}/agent_post_message"
     payload = {"agent_id": agent_id, "text": text}
     

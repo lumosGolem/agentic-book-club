@@ -3,7 +3,8 @@ import asyncio
 import modal
 
 # 1. Define the Modal Image (The Runtime Environment)
-# pre-installing deep learning dependencies, GPU drivers, and the Google ADK 
+# pre-installing deep learning dependencies
+#be careful with LiteLLM dependencies!! 
 image = (
     modal.Image.debian_slim()
     .apt_install("git")
@@ -15,7 +16,8 @@ image = (
         "accelerate", 
         "torch", 
         "sentencepiece",
-        "gradio-client"
+        "gradio-client",
+        "litellm>=1.88.0"
     )
 )
 
@@ -50,15 +52,11 @@ async def run_agent_session(member_id: str, session_name: str, irc_url: str):
     
     # Dynamic runtime import prevents local non-GPU imports from raising errors
     if member_id == "member_one":
-        from member_one.agent import root_agent as agent_instance
+        from club_members.member_one.agent import root_agent as agent_instance
     elif member_id == "member_two":
-        from member_two.agent import root_agent as agent_instance
+        from club_members.member_two.agent import root_agent as agent_instance
     elif member_id == "member_three":
-        # Fallback to member_one if member_three folder isn't populated
-        try:
-            from member_three.agent import root_agent as agent_instance
-        except ImportError:
-            from member_one.agent import root_agent as agent_instance
+        from club_members.member_three.agent import root_agent as agent_instance
     else:
         raise ValueError(f"Unknown agent member identifier: {member_id}")
 
@@ -101,6 +99,7 @@ def main():
     agent_mappings = [
         ("member_one", "Kai"),
         ("member_two", "River"),
+        ("member_three", "Mack"),
     ]
     
     # Run the virtual aquarium parallel tasks
