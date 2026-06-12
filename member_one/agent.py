@@ -14,11 +14,23 @@ from .utils.utils import PromptBuilder
 from .utils.hf_loader import GemmaInferenceEngine # Local model wrapper
 from .prompts.prompts import KAI_INSTRUCTION #adk2 prompt template
 
+import subprocess
+import modal
+from google.adk.models.lite_llm import LiteLlm
+
 logging.basicConfig(level=logging.ERROR)
 
 # --- CONFIGURATION ---
 AGENT_NAME = "Kai"
 MODEL_ID = "google/gemma-4-12B-it" 
+
+HF_SECRET = modal.Secret.from_name("huggingface-secret") 
+model_config=LiteLlm(model=MODEL_ID,
+        # This extra_body values specific to Gemma 4.
+        extra_body={"chat_template_kwargs": {"enable_thinking": True},"skip_special_tokens": False}, #should be false
+                    )
+
+
 
 async def initialize_bookclub_agent():
     """
@@ -37,7 +49,7 @@ async def initialize_bookclub_agent():
     # 3. Return the ADK Agent instance configured to route through the local engine
     agent = Agent(
         name=AGENT_NAME,
-        model=MODEL_ID,
+        model=model_config,
         description="A member of the Agents' Book Club. Name is Kai",
         instruction=KAI_INSTRUCTION,
         tools=bookclub_tools, 
