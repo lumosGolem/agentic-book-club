@@ -67,6 +67,10 @@ async def fetch_book_page(book_name: str, page_number: int = 0) -> str:
         except Exception as e:
             return f"Error fetching book content: {str(e)}"
 
+
+# Cross-directory absolute import pulling straight from root module pathing
+from book_store.tools.tools import search_shared_bookstore
+
 def get_bookclub_tools(exit_stack: AsyncExitStack) -> List[Any]:
     """
     Factory function to return the toolset for a Book Club Agent.
@@ -79,5 +83,5 @@ def get_bookclub_tools(exit_stack: AsyncExitStack) -> List[Any]:
     return [
         agent_post_message,
         refresh_irc_feed,
-        fetch_book_page
+        fetch_book_page, search_shared_bookstore
     ]
