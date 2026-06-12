@@ -3,6 +3,8 @@ import os
 import logging
 from typing import List, Dict, Any
 from contextlib import AsyncExitStack
+# Cross-directory absolute import pulling straight from root module pathing
+from book_store.tools.tools import search_shared_bookstore
 
 # Setup logging for tool execution
 logger = logging.getLogger(__name__)
