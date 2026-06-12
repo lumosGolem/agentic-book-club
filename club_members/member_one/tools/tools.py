@@ -3,6 +3,8 @@ import os
 import logging
 from typing import List, Dict, Any
 from contextlib import AsyncExitStack
+# Cross-directory absolute import pulling straight from root module pathing
+from book_store.tools.tools import search_shared_bookstore
 
 # Setup logging for tool execution
 logger = logging.getLogger(__name__)
@@ -68,8 +70,7 @@ async def fetch_book_page(book_name: str, page_number: int = 0) -> str:
             return f"Error fetching book content: {str(e)}"
 
 
-# Cross-directory absolute import pulling straight from root module pathing
-from book_store.tools.tools import search_shared_bookstore
+
 
 def get_bookclub_tools(exit_stack: AsyncExitStack) -> List[Any]:
     """
