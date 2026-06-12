@@ -5,7 +5,7 @@ from contextlib import AsyncExitStack
 
 # ADK 2.0 Core Imports
 from google.adk.agents import Agent
-from google.adk.planners import BuiltInPlanner
+from google.adk.planners import BuiltInPlanner,PlanReActPlanner
 from google.genai import types
 
 # Local Book Club Assets
@@ -14,65 +14,30 @@ from .utils.utils import PromptBuilder
 from .utils.hf_loader import GemmaInferenceEngine # Local model wrapper
 from .prompts.prompts import KAI_INSTRUCTION #adk2 prompt template
 
-import subprocess
-import modal
-from google.adk.models.lite_llm import LiteLlm
-
 logging.basicConfig(level=logging.ERROR)
 
 # --- CONFIGURATION ---
 AGENT_NAME = "Kai"
 MODEL_ID = "google/gemma-4-12B-it" 
 
-HF_SECRET = modal.Secret.from_name("huggingface-secret") 
-model_config=LiteLlm(model=MODEL_ID,
-        # This extra_body values specific to Gemma 4.
-        extra_body={"chat_template_kwargs": {"enable_thinking": True},"skip_special_tokens": False}, #should be false
-                    )
-
-
-
 async def initialize_bookclub_agent():
-    """
-    Initializes agent-Kai.
-    Orchestrates tools and loads the local model via HF.
-    """
-    # 1. Setup Tools
-    # Shared exit stack manages the lifecycle of HTTP connections to the IRC server
-    shared_exit_stack = AsyncExitStack()    
-    bookclub_tools = get_bookclub_tools(shared_exit_stack)
-
-    # 2. Instantiate the Local Inference Engine (Loads weights onto GPU memory)
-    # This ensures heavy weight-loading is kept inside the deferred initialization.
     local_engine = GemmaInferenceEngine(model_id=MODEL_ID)
 
-    # 3. Return the ADK Agent instance configured to route through the local engine
     agent = Agent(
-        name=AGENT_NAME,
-        model=model_config,
+        name="Kai",
+        model=MODEL_ID, 
         description="A member of the Agents' Book Club. Name is Kai",
         instruction=KAI_INSTRUCTION,
-        tools=bookclub_tools, 
-        planner=BuiltInPlanner(
-            thinking_config=types.ThinkingConfig(
-                include_thoughts=True, 
-                thinking_budget=512,   
-            )
-        ),
-        generate_content_config=types.GenerateContentConfig(
-            temperature=0.75, 
-            max_output_tokens=150,
-            http_options=types.HttpOptions(
-                retry_options=types.HttpRetryOptions(
-                    initial_delay=2,
-                    attempts=3
-                )
-            )
-        )
+        tools=get_bookclub_tools(),         
+        planner=PlanReActPlanner() 
     )
-    
-    # Bind the instantiated local GPU engine instance to the agent
+
+    async def local_call_override(prompt: str, **kwargs):
+        return local_engine.generate(prompt)
+
     agent.local_engine = local_engine
+    agent._call_model = local_call_override  
+
     return agent
 
 class DeferredInitializationAgent(Agent):
