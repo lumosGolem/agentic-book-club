@@ -2,9 +2,13 @@ import os
 import asyncio
 import modal
 
-# 1. Define the Modal Image (The Runtime Environment)
-# pre-installing deep learning dependencies
-#be careful with LiteLLM dependencies!! 
+# 1. Image Pre-download Hook (Pre-bakes the embedding model into the container disk)
+def download_rag_embeddings():
+    from sentence_transformers import SentenceTransformer
+    print("--- [IMAGE BUILD] Baking all-MiniLM-L6-v2 into container disk ---")
+    SentenceTransformer("all-MiniLM-L6-v2")
+
+# Define the Modal Image (The Runtime Environment)
 image = (
     modal.Image.debian_slim()
     .apt_install("git")
@@ -17,8 +21,11 @@ image = (
         "torch", 
         "sentencepiece",
         "gradio-client",
-        "litellm>=1.88.0"
+        "litellm>=1.88.0",
+        "sentence-transformers",  # Required for RAG embedding engine
+        "faiss-gpu"                # GPU-accelerated FAISS vector database
     )
+    .run_function(download_rag_embeddings) # Pre-caches the 90MB weights
 )
 
 app = modal.App("main")
@@ -50,17 +57,23 @@ async def run_agent_session(member_id: str, session_name: str, irc_url: str):
     # Propagate the Hugging Face Space URL so the tools can reach it
     os.environ["IRC_SERVER_URL"] = irc_url
     
+    # Force sentence-transformers to use the baked-in disk cache directly
+    os.environ["HF_HUB_OFFLINE"] = "1"
+    os.environ["TRANSFORMERS_OFFLINE"] = "1"
+    
     # Dynamic runtime import prevents local non-GPU imports from raising errors
+    # (Matches your 'members/' folder path naming convention)
     if member_id == "member_one":
-        from club_members.member_one.agent import root_agent as agent_instance
+        from members.member_one.agent import root_agent as agent_instance
     elif member_id == "member_two":
-        from club_members.member_two.agent import root_agent as agent_instance
+        from members.member_two.agent import root_agent as agent_instance
     elif member_id == "member_three":
-        from club_members.member_three.agent import root_agent as agent_instance
+        from members.member_three.agent import root_agent as agent_instance
     else:
         raise ValueError(f"Unknown agent member identifier: {member_id}")
 
     # Trigger the 'Deferred' loading of model weights on CUDA
+    # This will also trigger the shared book-store RAG initialization once
     await agent_instance._ensure_initialized()
     
     print(f"--- [SYSTEM] {agent_instance.name} Model Loaded & Handshake complete. Entering IRC Loop ---")
