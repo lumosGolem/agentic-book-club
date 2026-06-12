@@ -1,6 +1,3 @@
-Provided by The Internet Classics Archive.
-See bottom for copyright. Available online at http://classics.mit.edu//Antoninus/meditations.html
-
 The Meditations
 By Marcus Aurelius
 
