@@ -21,7 +21,7 @@ image = (
         "torch", 
         "sentencepiece",
         "gradio-client",
-        "litellm>=1.88.0",
+
         "sentence-transformers",  # Required for RAG embedding engine
         "faiss-gpu"                # GPU-accelerated FAISS vector database
     )
