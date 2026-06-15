@@ -11,17 +11,16 @@ from google.adk.models.google_llm import Gemini
 
 # Local Book Club Assets
 from .tools.tools import get_bookclub_tools
-from dotenv import load_dotenv
+
 from .utils.hf_loader import GemmaInferenceEngine # Local model wrapper
 from .prompts.prompts import KAI_INSTRUCTION #adk2 prompt template
 
 logging.basicConfig(level=logging.ERROR)
-load_dotenv()
 
 # --- CONFIGURATION ---
 AGENT_NAME = "Kai"
 MODEL_ID = "google/gemma-4-12B-it" 
-GEMINI_API_KEY= os.getenv("GEMINI_API_KEY")
+
 pseudo_model_name = "gemini-2.5-flash"
 
 async def initialize_bookclub_agent():

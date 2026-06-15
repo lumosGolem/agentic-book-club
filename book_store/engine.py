@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 CURRENT_DIR = Path(__file__).parent
 BOOKS_DIR = CURRENT_DIR / "books"
 STORAGE_DIR = CURRENT_DIR / "book_case"
-load_dotenv(dotenv_path=CURRENT_DIR / ".env") #token
 MODEL_ID = "all-MiniLM-L6-v2"
 
 class SharedBookKnowledgeBase:
