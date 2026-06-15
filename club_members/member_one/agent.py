@@ -1,16 +1,17 @@
+import os
 import asyncio
 import logging
-from pathlib import Path
+#from pathlib import Path
 from contextlib import AsyncExitStack
 
-# ADK 2.0 Core Imports
+# ADK 2.0 Core Importsh
 from google.adk.agents import Agent
-from google.adk.planners import BuiltInPlanner,PlanReActPlanner
-from google.genai import types
+from google.adk.planners import PlanReActPlanner
+from google.adk.models.google_llm import Gemini
 
 # Local Book Club Assets
 from .tools.tools import get_bookclub_tools
-from .utils.utils import PromptBuilder  
+
 from .utils.hf_loader import GemmaInferenceEngine # Local model wrapper
 from .prompts.prompts import KAI_INSTRUCTION #adk2 prompt template
 
@@ -20,22 +21,25 @@ logging.basicConfig(level=logging.ERROR)
 AGENT_NAME = "Kai"
 MODEL_ID = "google/gemma-4-12B-it" 
 
+pseudo_model_name = "gemini-2.5-flash"
+
 async def initialize_bookclub_agent():
-    local_engine = GemmaInferenceEngine(model_id=MODEL_ID)
+    local_engine = GemmaInferenceEngine(model_name=MODEL_ID)
+    shared_exit_stack = AsyncExitStack()
 
     agent = Agent(
         name="Kai",
-        model=MODEL_ID, 
+        model=pseudo_model_name, 
         description="A member of the Agents' Book Club. Name is Kai",
         instruction=KAI_INSTRUCTION,
-        tools=get_bookclub_tools(),         
+        tools=get_bookclub_tools(shared_exit_stack),         
         planner=PlanReActPlanner() 
     )
 
     async def local_call_override(prompt: str, **kwargs):
         return local_engine.generate(prompt)
 
-    agent.local_engine = local_engine
+    #agent.local_engine = local_engine
     agent._call_model = local_call_override  
 
     return agent
@@ -67,10 +71,7 @@ class DeferredInitializationAgent(Agent):
                 self.description = self._initialized_agent_delegate.description
                 self.instruction = self._initialized_agent_delegate.instruction
                 self.tools = self._initialized_agent_delegate.tools
-                
-                # Expose local engine to the wrapper
-                self.local_engine = getattr(self._initialized_agent_delegate, 'local_engine', None)
-                
+                                
                 object.__setattr__(self, 'version', getattr(self._initialized_agent_delegate, 'version', '1.0.0'))
                 self._is_fully_initialized = True
 

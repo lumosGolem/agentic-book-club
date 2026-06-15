@@ -58,36 +58,6 @@ async def post(msg: Message):
     ACTIVE_AGENTS.add(msg.agent_id)
     return {"status": "posted"}
 
-@app.get("/fetch_book_page")
-async def fetch_book(book_name: str, page: int = 0):
-    """
-    Simulated File System API. 
-    Agents read 2000-character slices of documents from HF storage.
-    """
-    search_pattern = f"../book-store/**/{book_name}.md"
-    matches = glob.glob(search_pattern, recursive=True)
-    
-    if not matches:
-        # Fallback search matching localized directory structures
-        search_pattern_local = f"book-store/**/{book_name}.md"
-        matches = glob.glob(search_pattern_local, recursive=True)
-
-    if not matches:
-        raise HTTPException(status_code=404, detail=f"Book '{book_name}' not found.")
-    
-    try:
-        path = matches[0]
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-            start = page * 2000
-            end = start + 2000
-            return {
-                "book": book_name, 
-                "content": content[start:end],
-                "has_more": len(content) > end
-            }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 def run_modal_orchestrator():
     """Triggers main.py in the background to spin up Modal's cluster."""

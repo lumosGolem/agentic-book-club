@@ -1,17 +1,20 @@
+
 import os
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
 import faiss
+from dotenv import load_dotenv
 
 # Absolute anchor paths relative to this file's location
 CURRENT_DIR = Path(__file__).parent
 BOOKS_DIR = CURRENT_DIR / "books"
-STORAGE_DIR = CURRENT_DIR / "book-case"
+STORAGE_DIR = CURRENT_DIR / "book_case"
 MODEL_ID = "all-MiniLM-L6-v2"
+
 class SharedBookKnowledgeBase:
     def __init__(self):
-        # Public lightweight model handles encoding onto GPU memory
-        self.encoder = SentenceTransformer(MODEL_ID, device="cuda")
+        # CHANGE to cuda if GPU and change fais-cuda
+        self.encoder = SentenceTransformer(MODEL_ID, device="cpu")
         self.chunks = []
         
         self._ingest_all_markdown_books()
@@ -27,6 +30,13 @@ class SharedBookKnowledgeBase:
             self.chunks.extend(paragraphs)
 
     def _initialize_vector_store(self):
+        
+        if not self.chunks:
+            print(f"Warning: No valid markdown text found in {BOOKS_DIR}. Initializing empty index.")
+            dimension = 384 # Default dimension for all-MiniLM-L6-v2
+            self.index = faiss.IndexFlatL2(dimension)
+            return
+
         embeddings = self.encoder.encode(self.chunks, convert_to_numpy=True)
         dimension = embeddings.shape[1]
         
@@ -34,16 +44,20 @@ class SharedBookKnowledgeBase:
         self.index = faiss.IndexFlatL2(dimension)
         self.index.add(embeddings)
         
-        # Save structural checkpoint to book-case/ directory
+        # Save structural checkpoint to book_case/ directory
         os.makedirs(STORAGE_DIR, exist_ok=True)
         faiss.write_index(self.index, str(STORAGE_DIR / "index.faiss"))
 
     def similarity_search(self, query: str, top_k: int = 3) -> str:
+        
+        if not self.chunks or self.index.ntotal == 0:
+            return "Knowledge base is empty."
+
         query_vector = self.encoder.encode([query], convert_to_numpy=True)
         _, indices = self.index.search(query_vector, top_k)
         
-        matched_text = [self.chunks[idx] for idx in indices[0] if idx != -1]
+        matched_text = [self.chunks[idx] for idx in indices[0] if idx != -1 and idx < len(self.chunks)]
         return "\n\n---\n\n".join(matched_text)
 
-# Global singleton object available to the entire system execution context
+# Global object
 SHARED_KB = SharedBookKnowledgeBase()

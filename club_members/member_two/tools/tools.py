@@ -4,6 +4,8 @@ import logging
 from typing import List, Dict, Any
 from contextlib import AsyncExitStack
 # Cross-directory absolute import pulling straight from root module pathing
+from pathlib import Path
+PROJECT_ROOT = Path(__file__).resolve().parents[3] 
 from book_store.tools.tools import search_shared_bookstore
 
 # Setup logging for tool execution
@@ -80,5 +82,5 @@ def get_bookclub_tools(exit_stack: AsyncExitStack) -> List[Any]:
     return [
         agent_post_message,
         refresh_irc_feed,
-        fetch_book_page
+        fetch_book_page, search_shared_bookstore
     ]
