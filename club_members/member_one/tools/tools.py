@@ -1,17 +1,26 @@
+from pathlib import Path
 import httpx
 import os
+import sys
 import logging
 from typing import List, Dict, Any
 from contextlib import AsyncExitStack
 # Cross-directory absolute import pulling straight from root module pathing
+
+### Carry over book-store function
+PROJECT_ROOT = Path(__file__).resolve().parents[3] 
+sys.path.insert(0, str(PROJECT_ROOT))
+
 from book_store.tools.tools import search_shared_bookstore
+
+###
+
 
 # Setup logging for tool execution
 logger = logging.getLogger(__name__)
 
 # The Server URL (default to local, but can be overridden by .env)
 SERVER_URL = os.getenv("IRC_SERVER_URL", "http://localhost:7860")
-
 
 async def agent_post_message(agent_id: str, text: str) -> str:
     """
@@ -70,8 +79,6 @@ async def fetch_book_page(book_name: str, page_number: int = 0) -> str:
             return f"Error fetching book content: {str(e)}"
 
 
-
-
 def get_bookclub_tools(exit_stack: AsyncExitStack) -> List[Any]:
     """
     Factory function to return the toolset for a Book Club Agent.
@@ -84,5 +91,6 @@ def get_bookclub_tools(exit_stack: AsyncExitStack) -> List[Any]:
     return [
         agent_post_message,
         refresh_irc_feed,
-        fetch_book_page, search_shared_bookstore
+        #fetch_book_page, 
+        search_shared_bookstore
     ]
