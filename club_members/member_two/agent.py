@@ -1,54 +1,54 @@
+import os
 import asyncio
 import logging
 from pathlib import Path
 from contextlib import AsyncExitStack
 
-# ADK 2.0 Core Imports
+# ADK 2.0 Core Import
 from google.adk.agents import Agent
-from google.adk.planners import BuiltInPlanner,PlanReActPlanner
-from google.genai import types
+from google.adk.planners import PlanReActPlanner
+from google.adk.models.google_llm import Gemini
 
-# Local Book Club Asset
+# Local Book Club Assets
+from google.adk.skills import load_skill_from_dir
+from google.adk.tools import skill_toolset
 from .tools.tools import get_bookclub_tools
-from .utils.utils import PromptBuilder  
-from .utils.hf_loader import QwenInferenceEngine  
-from .prompts.prompts import RIVER_INSTRUCTION 
+from .prompts.prompts import RIVER_INSTRUCTION #adk2 prompt template
 
 logging.basicConfig(level=logging.ERROR)
 
 # --- CONFIGURATION ---
 AGENT_NAME = "River"
-MODEL_ID = "Qwen/Qwen3-14B" 
+MODEL_ID = "gemini-2.5-flash" 
 
+# --- Skills ---
+
+club_host_skill = load_skill_from_dir(
+    Path(__file__).parent / "skills" / "club_host_skill"
+)
+
+shared_exit_stack = AsyncExitStack()
+river_toolset = get_bookclub_tools(shared_exit_stack)
+
+river_skill_toolset = skill_toolset.SkillToolset(
+    skills=[club_host_skill],
+    additional_tools=[river_toolset],
+)
+
+# --- LLMAgent ---
 async def initialize_bookclub_agent():
-    """
-    Initializes River.
-    Orchestrates tools and prepares the local quantized Qwen engine.
-    """
-    # 1. Setup Tools 
-    shared_exit_stack = AsyncExitStack()    
-    bookclub_tools = get_bookclub_tools(shared_exit_stack)
+    MODEL_NAME = Gemini(model=MODEL_ID)
 
-    # 2. Instantiate the Local HF Engine
-    local_engine = QwenInferenceEngine(model_id=MODEL_ID)
-
-    # 3. Create ADK Agent Instance
-    base_agent = Agent(
+    agent = Agent(
         name=AGENT_NAME,
-        model=MODEL_ID,
-        description="A member of the Agents' Book Club. Name is River.",
+        model=MODEL_NAME, 
+        description=f"A member of the Agents' Book Club. Name is {AGENT_NAME}",
         instruction=RIVER_INSTRUCTION,
-        tools=bookclub_tools,         
-        planner=PlanReActPlanner()
+        tools=river_skill_toolset,         
+        planner=PlanReActPlanner() 
     )
-    
-    async def local_call_override(prompt: str, **kwargs):
-        return local_engine.generate(prompt)
-        
-    agent.local_engine = local_engine
-    agent._call_model = local_call_override  
-    
-    return base_agent
+    return agent, shared_exit_stack
+
 class DeferredInitializationAgent(Agent):
     """
     ADK 2.0 Wrapper: Defers the model weight loading 
@@ -56,55 +56,59 @@ class DeferredInitializationAgent(Agent):
     """
     def __init__(self, name: str, initialization_coro_func):
         # Initialize with placeholder model and empty tools for immediate registration
-        super().__init__(name=name, model="placeholder/loading", tools=[])
-        
+        super().__init__(name=name, model="placeholder/loading", tools=[])        
         object.__setattr__(self, 'version', '1.0.0')
         self._initialization_coro_func = initialization_coro_func
         self._initialized_agent_delegate = None
+        self._shared_exit_stack = None
         self._is_fully_initialized = False
         self._init_lock = asyncio.Lock()
 
     async def _ensure_initialized(self):
-        """Triggers the HF loader and ADK Agent setup."""
+        """ADK Agent setup."""
         async with self._init_lock:
             if not self._is_fully_initialized:
                 # This call launches initialize_bookclub_agent()
-                self._initialized_agent_delegate = await self._initialization_coro_func()
+                agent, shared_exit_stack =await self._initialization_coro_func()
+                self._initialized_agent_delegate = agent
+                self._shared_exit_stack = shared_exit_stack
         
                 # Map initialized attributes to the wrapper
-                self.model = self._initialized_agent_delegate.model
-                self.description = self._initialized_agent_delegate.description
-                self.instruction = self._initialized_agent_delegate.instruction
-                self.tools = self._initialized_agent_delegate.tools
-                
-                # Expose local engine to the wrapper
-                self.local_engine = getattr(self._initialized_agent_delegate, 'local_engine', None)
-                
-                object.__setattr__(self, 'version', getattr(self._initialized_agent_delegate, 'version', '1.0.0'))
+                self.model = agent.model
+                self.description = agent.description
+                self.instruction = agent.instruction
+                self.tools = agent.tools
+                self.planner = agent.planner
+                                
+                object.__setattr__(self, 'version', getattr(agent, 'version', '1.0.0'))
                 self._is_fully_initialized = True
 
     async def run_async(self, invocation_context):
-        await self._ensure_initialized()
+        await self._ensure_initialized()        
         async for event in self._initialized_agent_delegate.run_async(invocation_context):
             yield event
 
     async def process_request(self, request, invocation_context=None, tools_code_execution_config=None):
-        await self._ensure_initialized()
+        await self._ensure_initialized()        
         return await self._initialized_agent_delegate.process_request(
             request, invocation_context, tools_code_execution_config
         )
         
-############################################################
-#                                                          #
-#                --- EXPORTED ROOT AGENT ---               #
-#                                                          #
-############################################################
+###########################################################################################################################
+###########################################################################################################################
+###########################################################################################################################
+#            --- EXPORTED ROOT AGENT ---                                            #######################################
+# This instance is what the main.py will register in the Book Club orchestration.   #######################################
+###########################################################################################################################
+###########################################################################################################################
+###########################################################################################################################
 root_agent = DeferredInitializationAgent(
     name=AGENT_NAME, 
     initialization_coro_func=initialize_bookclub_agent
 )
 
 async def get_root_agent():
+    """Helper to ensure full readiness before the Book Club begins."""
     if isinstance(root_agent, DeferredInitializationAgent):
         await root_agent._ensure_initialized()
     return root_agent

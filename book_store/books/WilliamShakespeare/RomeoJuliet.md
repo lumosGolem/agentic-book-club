@@ -43,7 +43,7 @@ Scene III. A churchyard; in it a Monument belonging to the Capulets.
 
 
 
- Dramatis Persona
+Dramatis Persona
 
 ESCALUS, Prince of Verona.
 MERCUTIO, kinsman to the Prince, and friend to Romeo.

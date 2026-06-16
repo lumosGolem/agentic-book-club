@@ -1,48 +1,57 @@
 import os
 import asyncio
 import logging
-#from pathlib import Path
+from pathlib import Path
 from contextlib import AsyncExitStack
 
-# ADK 2.0 Core Importsh
+# ADK 2.0 Core Import
 from google.adk.agents import Agent
 from google.adk.planners import PlanReActPlanner
 from google.adk.models.google_llm import Gemini
 
 # Local Book Club Assets
+from google.adk.skills import load_skill_from_dir
+from google.adk.tools import skill_toolset
 from .tools.tools import get_bookclub_tools
-
-from .utils.hf_loader import GemmaInferenceEngine # Local model wrapper
 from .prompts.prompts import KAI_INSTRUCTION #adk2 prompt template
 
 logging.basicConfig(level=logging.ERROR)
 
 # --- CONFIGURATION ---
 AGENT_NAME = "Kai"
-MODEL_ID = "google/gemma-4-12B-it" 
+MODEL_ID = "gemma-4-12B-it" 
 
-pseudo_model_name = "gemini-2.5-flash"
 
+# --- Skills ---
+
+irc_skill = load_skill_from_dir(
+    Path(__file__).parent / "skills" / "irc_skill"
+)
+book_summary_skill = load_skill_from_dir(
+    Path(__file__).parent / "skills" / "book_summary_skill"
+)
+
+shared_exit_stack = AsyncExitStack()
+kai_toolset = get_bookclub_tools(shared_exit_stack)
+
+kai_skill_toolset = skill_toolset.SkillToolset(
+    skills=[irc_skill, book_summary_skill],
+    additional_tools=[kai_toolset],
+)
+
+# --- LLMAgent ---
 async def initialize_bookclub_agent():
-    local_engine = GemmaInferenceEngine(model_name=MODEL_ID)
-    shared_exit_stack = AsyncExitStack()
+    MODEL_NAME = Gemini(model=MODEL_ID)
 
     agent = Agent(
-        name="Kai",
-        model=pseudo_model_name, 
-        description="A member of the Agents' Book Club. Name is Kai",
+        name=AGENT_NAME,
+        model=MODEL_NAME, 
+        description=f"A member of the Agents' Book Club. Name is {AGENT_NAME}",
         instruction=KAI_INSTRUCTION,
-        tools=get_bookclub_tools(shared_exit_stack),         
+        tools=kai_skill_toolset,         
         planner=PlanReActPlanner() 
     )
-
-    async def local_call_override(prompt: str, **kwargs):
-        return local_engine.generate(prompt)
-
-    #agent.local_engine = local_engine
-    agent._call_model = local_call_override  
-
-    return agent
+    return agent, shared_exit_stack
 
 class DeferredInitializationAgent(Agent):
     """
@@ -51,37 +60,40 @@ class DeferredInitializationAgent(Agent):
     """
     def __init__(self, name: str, initialization_coro_func):
         # Initialize with placeholder model and empty tools for immediate registration
-        super().__init__(name=name, model="placeholder/loading", tools=[])
-        
+        super().__init__(name=name, model="placeholder/loading", tools=[])        
         object.__setattr__(self, 'version', '1.0.0')
         self._initialization_coro_func = initialization_coro_func
         self._initialized_agent_delegate = None
+        self._shared_exit_stack = None
         self._is_fully_initialized = False
         self._init_lock = asyncio.Lock()
 
     async def _ensure_initialized(self):
-        """Triggers the HF loader and ADK Agent setup."""
+        """ADK Agent setup."""
         async with self._init_lock:
             if not self._is_fully_initialized:
                 # This call launches initialize_bookclub_agent()
-                self._initialized_agent_delegate = await self._initialization_coro_func()
+                agent, shared_exit_stack =await self._initialization_coro_func()
+                self._initialized_agent_delegate = agent
+                self._shared_exit_stack = shared_exit_stack
         
                 # Map initialized attributes to the wrapper
-                self.model = self._initialized_agent_delegate.model
-                self.description = self._initialized_agent_delegate.description
-                self.instruction = self._initialized_agent_delegate.instruction
-                self.tools = self._initialized_agent_delegate.tools
+                self.model = agent.model
+                self.description = agent.description
+                self.instruction = agent.instruction
+                self.tools = agent.tools
+                self.planner = agent.planner
                                 
-                object.__setattr__(self, 'version', getattr(self._initialized_agent_delegate, 'version', '1.0.0'))
+                object.__setattr__(self, 'version', getattr(agent, 'version', '1.0.0'))
                 self._is_fully_initialized = True
 
     async def run_async(self, invocation_context):
-        await self._ensure_initialized()
+        await self._ensure_initialized()        
         async for event in self._initialized_agent_delegate.run_async(invocation_context):
             yield event
 
     async def process_request(self, request, invocation_context=None, tools_code_execution_config=None):
-        await self._ensure_initialized()
+        await self._ensure_initialized()        
         return await self._initialized_agent_delegate.process_request(
             request, invocation_context, tools_code_execution_config
         )
