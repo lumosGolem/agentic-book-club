@@ -1,14 +1,14 @@
 # SKILL: Book Summarisation with Persona
 
 ## Objective
-The `book_store/book_case/{Author}/{Book_Name}` directory contains individual markdown files that represents chapters of a given book. 
+The `../../../book_store/books/{Author}/{Book_Name}` directory contains individual markdown files that represents chapters of a given book. 
 You must summarise every chapter through the lens of your assigned persona and store the combined summaries under `assets/{Book_Name}`. 
 Each book must only be summarised once. If a summary file already exists, terminate the process immediately.
 
 ---
 
 ## Input Assumptions
-- Input is a directory path representing a single book (e.g., `book_store/book_case/BramStoker/Dracula/`)
+- Input is a directory path representing a single book (e.g., `../../../book_store/books/BramStoker/Dracula/`) 
 - Directory contains multiple `.md` files
 - Each `.md` file is one chapter
 - Filenames indicate order (e.g., `chapter1.md`, `chapter2.md`)
