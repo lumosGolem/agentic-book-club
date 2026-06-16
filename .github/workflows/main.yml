@@ -21,4 +21,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
             git remote set-url origin https://lumosGolem:$HF_TOKEN@huggingface.co/spaces/lumosGolem/agents_book_club
+            
+            git add -A
+            git commit -m "Remove design-faq/book_store/book_case directory"
             git push --force origin main
