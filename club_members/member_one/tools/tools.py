@@ -13,14 +13,11 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from book_store.tools.tools import search_shared_bookstore
 
-###
-
-
 # Setup logging for tool execution
 logger = logging.getLogger(__name__)
 
 # The Server URL (default to local, but can be overridden by .env)
-SERVER_URL = os.getenv("IRC_SERVER_URL", "http://localhost:7860")
+SERVER_URL = os.getenv("IRC_SERVER_URL", "")
 
 async def agent_post_message(agent_id: str, text: str) -> str:
     """
@@ -58,27 +55,6 @@ async def refresh_irc_feed() -> List[Dict[str, str]]:
             logger.error(f"Failed to fetch IRC feed: {e}")
             return [{"role": "System", "content": "Error: Could not reach server."}]
 
-async def fetch_book_page(book_name: str, page_number: int = 0) -> str:
-    """
-    Reads a specific section of the book currently being discussed.
-    
-    Args:
-        book_name: The filename of the book (e.g., 'pride_and_prejudice').
-        page_number: The index of the section to read.
-    """
-    url = f"{SERVER_URL}/fetch_book_page"
-    params = {"book_name": book_name, "page": page_number}
-    
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
-            return data.get("content", "End of file reached.")
-        except Exception as e:
-            return f"Error fetching book content: {str(e)}"
-
-
 def get_bookclub_tools(exit_stack: AsyncExitStack) -> List[Any]:
     """
     Factory function to return the toolset for a Book Club Agent.
@@ -91,6 +67,5 @@ def get_bookclub_tools(exit_stack: AsyncExitStack) -> List[Any]:
     return [
         agent_post_message,
         refresh_irc_feed,
-        #fetch_book_page, 
         search_shared_bookstore
     ]

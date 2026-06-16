@@ -1,7 +1,5 @@
 from collections import OrderedDict
-from typing import List
 
-from collections import OrderedDict
 
 class PromptBuilder:
     def __init__(self, sections: OrderedDict):
