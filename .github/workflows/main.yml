@@ -21,5 +21,6 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
             git remote set-url origin https://lumosGolem:$HF_TOKEN@huggingface.co/spaces/lumosGolem/agents_book_club
-        
+            git reset
+            git add .
             git push --force origin main
