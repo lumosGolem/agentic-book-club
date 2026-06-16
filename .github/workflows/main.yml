@@ -22,7 +22,8 @@ jobs:
         run: |
           git config --global user.email "lumosGolem@users.noreply.github.com"
           git config --global user.name "lumosGolem"
+       
           git remote add hf https://lumosGolem:$HF_TOKEN@huggingface.co/spaces/lumosGolem/agents_book_club
-          git fetch origin main
-          git checkout main
+          git add -A
+          git commit -m "Remove deleted folder and update files" || true
           git push --force hf main
