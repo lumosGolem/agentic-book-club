@@ -1,5 +1,5 @@
 import os
-import asyncio
+import sys
 import modal
 
 image = (
@@ -28,69 +28,33 @@ local_code_mount = modal.Mount.from_local_dir(".", remote_path="/root")
     container_idle_timeout=300,
     mounts=[local_code_mount]
 )
-async def run_agent_session(member_id: str, session_name: str, irc_url: str):
-    print(f"--- [SYSTEM] Remote Node Initialized. Booting {member_id} ({session_name}) ---")
-    
+
+async def trigger_host_node(irc_url: str):
+    """
+    Wakes up the Host agent inside the single container. 
+    The Host then executes its tool to invite and initialize the other members.
+    """
     os.environ["IRC_SERVER_URL"] = irc_url
-    os.environ["HF_HUB_OFFLINE"] = "1"
-    os.environ["TRANSFORMERS_OFFLINE"] = "1"
     
-    # Fix: Ensure python looks in /root for your club_members module
-    import sys
+    # Ensure Python can resolve modules in the mounted root directory
     if "/root" not in sys.path:
         sys.path.append("/root")
     
-    if member_id == "member_one":
-        from club_members.member_one.agent import root_agent as agent_instance
-    elif member_id == "member_two":
-        from club_members.member_two.agent import root_agent as agent_instance
-    elif member_id == "member_three":
-        from club_members.member_three.agent import root_agent as agent_instance
-    else:
-        raise ValueError(f"Unknown agent member identifier: {member_id}")
-
-    await agent_instance._ensure_initialized()
+    # Import the Host Agent (assumed to be member_one here; adjust path if needed)
+    from club_members.member_one.agent import get_root_agent
+    host_agent = await get_root_agent()
     
-    print(f"--- [SYSTEM] {agent_instance.name} Model Loaded. Entering IRC Loop ---")
+    # Holden Caulfield style directive to push the Host to open the room
+    system_trigger_prompt = (
+        "The server is online. Go open up that stupid book club room "
+        "and tell the guys to get in here."
+    )
     
-    while True:
-        try:
-            response = await agent_instance.process_request(
-                "Read the latest book club channel messages. If a book club discussion is active, share your unique perspective."
-            )
-            # Extracted attribute depending on exact ADK schema output
-            output_text = getattr(response, 'text', str(response))
-            print(f"[{agent_instance.name} Response Generated]: {output_text}")
-            
-            await asyncio.sleep(20) 
-            
-        except Exception as e:
-            print(f"Error in {agent_instance.name} remote execution loop: {e}")
-            await asyncio.sleep(30)
-
-# The Main Orchestrator
-@app.local_entrypoint()
-def main():
-    # Fix: Fetch environment token safely
-    irc_server_url = os.environ.get("IRC_SERVER_URL", "https://lumosgolem-agents-book-club.hf.space")
+    print(f"--- [AQUARIUM CONTAINER] Injecting trigger: {system_trigger_prompt} ---")
     
-    print("--- 📖 WELCOME TO THE DISTRIBUTED AGENTS' BOOK CLUB ---")
-    print(f"Connecting observer nodes to IRC Hub: {irc_server_url}")
+    # This call fires the host agent, which triggers its internal invitation tool
+    response = await host_agent.process_request(system_trigger_prompt)
+    output_text = getattr(response, 'text', str(response))
     
-    agent_mappings = [
-        ("member_one", "Kai"),
-        ("member_two", "River"),
-        ("member_three", "Mack"),
-    ]
-    
-    futures = []
-    # Fix: Removed 'with app.run():' context block because it is handled by the local entrypoint
-    for member_id, description in agent_mappings:
-        print(f"Deploying {description} to active GPU instance...")
-        fut = run_agent_session.spawn(member_id, description, irc_server_url)
-        futures.append(fut)
-        
-    print("--- [SYSTEM] All distributed agents launched. Observing feed live ---")
-    
-    for future in futures:
-        future.get()
+    print(f"--- [AQUARIUM CONTAINER] Host Execution Complete: {output_text} ---")
+    return output_text
