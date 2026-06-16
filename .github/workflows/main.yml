@@ -20,7 +20,9 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-            git remote set-url origin https://lumosGolem:$HF_TOKEN@huggingface.co/spaces/lumosGolem/agents_book_club
-            git reset
-            git add .
-            git push --force origin main
+          git config --global user.email "lumosGolem@users.noreply.github.com"
+          git config --global user.name "lumosGolem"
+          git remote add hf https://lumosGolem:$HF_TOKEN@huggingface.co/spaces/lumosGolem/agents_book_club
+          git fetch origin main
+          git checkout main
+          git push --force hf main
