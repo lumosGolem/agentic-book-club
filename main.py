@@ -40,8 +40,8 @@ async def trigger_host_node(irc_url: str):
     if "/root" not in sys.path:
         sys.path.append("/root")
     
-    # Import the Host Agent (assumed to be member_one here; adjust path if needed)
-    from club_members.member_one.agent import get_root_agent
+    # Import the Host Agent
+    from club_members.member_two.agent import get_root_agent
     host_agent = await get_root_agent()
     
     # Holden Caulfield style directive to push the Host to open the room

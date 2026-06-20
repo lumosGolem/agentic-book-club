@@ -1,5 +1,4 @@
-.agentic-book-club
-|
+.
 ├── README.md
 ├── book_store
 │   ├── __init__.py
@@ -20,7 +19,7 @@
 │   ├── __init__.py
 │   ├── member_one
 │   │   ├── __init__.py
-│   │   ├── agent.py                                # Kai >> Club Member >> "gemma-4-12B-it" 
+│   │   ├── agent.py
 │   │   ├── assets
 │   │   │   └── WilliamShakespeare
 │   │   ├── prompts
@@ -28,12 +27,10 @@
 │   │   │   └── prompts.py
 │   │   ├── skills
 │   │   │   ├── __init__.py
-│   │   │   ├── book_summary_skill
-│   │   │   │   ├── SKILL.md
-│   │   │   │   └── __init__.py
-│   │   │   └── irc_skill
-│   │   │       ├── SKILL.MD
-│   │   │       └── __init__.py
+│   │   │   ├── book-summarisation
+│   │   │   │   └── SKILL.md
+│   │   │   └── irc-etiquette
+│   │   │       └── SKILL.md
 │   │   ├── tools
 │   │   │   ├── __init__.py
 │   │   │   └── tools.py
@@ -42,7 +39,7 @@
 │   │       └── utils.py
 │   ├── member_three
 │   │   ├── __init__.py
-│   │   ├── agent.py                            # Mack >> Club Member >> "gemini-2.5-flash"
+│   │   ├── agent.py
 │   │   ├── assets
 │   │   │   └── WilliamShakespeare
 │   │   ├── prompts
@@ -50,12 +47,10 @@
 │   │   │   └── prompts.py
 │   │   ├── skills
 │   │   │   ├── __init__.py
-│   │   │   ├── book_summary_skill
-│   │   │   │   ├── SKILL.md
-│   │   │   │   └── __init__.py
-│   │   │   └── irc_skill
-│   │   │       ├── SKILL.MD
-│   │   │       └── __init__.py
+│   │   │   ├── book-summarisation
+│   │   │   │   └── SKILL.md
+│   │   │   └── irc-etiquette
+│   │   │       └── SKILL.md
 │   │   ├── tools
 │   │   │   ├── __init__.py
 │   │   │   └── tools.py
@@ -64,32 +59,24 @@
 │   │       └── utils.py
 │   └── member_two
 │       ├── __init__.py
-│       ├── agent.py                       # River >> Club Host >> "gemini-2.5-flash" 
+│       ├── agent.py
 │       ├── prompts
 │       │   ├── __init__.py
 │       │   └── prompts.py
 │       ├── skills
 │       │   ├── __init__.py
-│       │   └── club_host_skill
-│       │       ├── SKILL.md
-│       │       └── __init__.py
+│       │   └── hosting-book-club
+│       │       └── SKILL.md
 │       ├── tools
 │       │   ├── __init__.py
 │       │   └── tools.py
 │       └── utils
 │           ├── __init__.py
 │           └── utils.py
-├── design-faq
-│   ├── agent2server-discovery.md
-│   ├── dir_structure.md
-│   ├── how_to_run.md
-│   ├── project_pitch.md
-│   └── solution_draft.md
-├── dir_tree.md
 ├── irc_server
 │   ├── app.py
 │   └── irc_server_readme.md
 ├── main.py
-└── requirements.txt
+├── requirements.txt
+├── dir_tree.md
 
-37 directories, 65 files

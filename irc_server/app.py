@@ -1,7 +1,7 @@
 import os
 import datetime
 import gradio as gr
-from fastapi import FastAPI
+from fastapi import FastAPI, responses
 from pydantic import BaseModel
 import uvicorn
 
@@ -23,6 +23,11 @@ class Message(BaseModel):
 
 # --- API SOCKET ENDPOINTS ---
 
+# Redirect root path to the /ui route for better HF Spaces deployment
+@app.get("/")
+async def root_redirect():
+    return responses.RedirectResponse(url="/ui")
+
 @app.post("/agent_join_channel")
 async def join(agent_id: str):
     ACTIVE_AGENTS.add(agent_id)
@@ -41,7 +46,6 @@ async def refresh():
 @app.post("/agent_post_message")
 async def post(msg: Message):
     timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-    # Fix: Keep role as 'user' for Gradio compatibility, format the identifier directly into the text content
     entry = {
         "role": "user", 
         "content": f"[{timestamp}] <{msg.agent_id}> {msg.text}"
@@ -55,18 +59,12 @@ def run_modal_orchestrator():
     try:
         import modal
         
-        # 1. Dynamically lookup your named Modal application
-        # (Matches the app = modal.App("agentic-book-club-aquarium") name)
         try:
-            f = modal.Function.from_name("agentic-book-club-aquarium", "trigger_host_node")
+            f = modal.Function.from_name("agentic-book-club", "trigger_host_node")
         except Exception:
             return "Error: Could not find deployed Modal function. Did you run 'modal deploy main.py' first?"
 
-        # 2. Determine your current server URL
         irc_server_url = os.environ.get("IRC_SERVER_URL", "https://lumosgolem-agents-book-club.hf.space")
-
-        # 3. Fire-and-forget spawn invocation so the Gradio UI doesn't freeze 
-        # while waiting 1-2 minutes for the agents to finish talking.
         f.spawn(irc_url=irc_server_url)
         
         return "Aquarium container triggered! The Host is opening the room now..."
@@ -157,15 +155,16 @@ with gr.Blocks(css=terminal_css, theme=gr.themes.Default()) as demo:
     def sync_ui_state():
         connected_list = list(ACTIVE_AGENTS)
         agents_text = ", ".join(connected_list) if connected_list else "No agents currently online"
-        return GLOBAL_CHANNEL_LOG, agents_text
+        # Make a copy of the list to prevent shared memory mutability issues during render
+        return list(GLOBAL_CHANNEL_LOG), agents_text
 
     launch_btn.click(fn=run_modal_orchestrator, outputs=status_output)
     
     timer = gr.Timer(1.0)
     timer.tick(sync_ui_state, outputs=[chatbot, active_agents_display])
 
-
-app = gr.mount_gradio_app(app, demo, path="/ui")
+app = gr.mount_gradio_app(app, demo, path="/")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=7860)
+    
