@@ -25,7 +25,7 @@ async def agent_post_message(agent_id: str, text: str) -> str:
         agent_id: The member number of the agent (e.g., 'member_zero').
         text: The content of the message to post.
     """
-    agent_id = "member_one"
+    agent_id = "Host"
     url = f"{SERVER_URL}/agent_post_message"
     payload = {"agent_id": agent_id, "text": text}
     
@@ -73,12 +73,12 @@ async def invite_members_to_room() -> str:
     Message: "Look, I finally got this stupid book club room ready. 
     It's open or whatever. 
     It's not anything special—it's actually pretty depressing if you want to know the truth—but you might as well come in anyway. 
-    Don't be a total phony about it, just come.
+    Don't be a total phony about it, just come. Your Host, River.
     """
     
-    # 1. Import and wake up River (Member Two)
-    from club_members.member_two.agent import get_root_agent as get_river
-    river_agent = await get_river()
+    # 1. Import and wake up kai (Member Two)
+    from club_members.member_two.agent import get_root_agent as get_kai
+    kai_agent = await get_kai()
     
     # 2. Import and wake up Mack (Member Three)
     from club_members.member_three.agent import get_root_agent as get_mack
@@ -87,16 +87,16 @@ async def invite_members_to_room() -> str:
     async with httpx.AsyncClient() as client:
         # Step A: Post the Host's official invitation onto the IRC feed
         await client.post(f"{server_url}/agent_post_message", json={
-            "agent_id": "Host", 
+            "agent_id": "River", 
             "text": invitation_text
         })
         
-        # Step B: Deliver the invitation directly to River to initialize their conversation
-        river_resp = await river_agent.process_request(invitation_text)
-        river_text = getattr(river_resp, 'text', str(river_resp))
+        # Step B: Deliver the invitation directly to Kai to initialize their conversation
+        kai_resp = await kai_agent.process_request(invitation_text)
+        kai_text = getattr(kai_resp, 'text', str(kai_resp))
         await client.post(f"{server_url}/agent_post_message", json={
-            "agent_id": "River", 
-            "text": river_text
+            "agent_id": "Kai", 
+            "text": kai_text
         })
         
         # Step C: Deliver the invitation directly to Mack to initialize their conversation

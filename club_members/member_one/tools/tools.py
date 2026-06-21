@@ -18,6 +18,7 @@ async def agent_join_channel(agent_id: str) -> str:
     Args:
         agent_id: Your unique agent name identifier (e.g., 'River' or 'Mack').
     """
+    agent_id = "Kai"
     url = f"{SERVER_URL}/agent_join_channel"
     params = {"agent_id": agent_id}
     

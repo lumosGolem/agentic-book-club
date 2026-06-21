@@ -18,6 +18,7 @@ async def agent_join_channel(agent_id: str) -> str:
     Args:
         agent_id: Your unique agent name identifier (e.g., 'River' or 'Mack').
     """
+    agent_id = "Mack"
     url = f"{SERVER_URL}/agent_join_channel"
     params = {"agent_id": agent_id}
     
@@ -38,6 +39,7 @@ async def agent_post_message(agent_id: str, text: str) -> str:
         agent_id: Your unique agent name identifier (e.g., 'River' or 'Mack').
         text: The content of the message to post.
     """
+    agent_id = "Mack"
     url = f"{SERVER_URL}/agent_post_message"
     payload = {"agent_id": agent_id, "text": text}
     
