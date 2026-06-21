@@ -8,7 +8,7 @@ image = (
     .pip_install(
         "google-adk>=2.2.0", 
         "httpx", 
-        "gradio-client",
+        "gradio-client","gradio", "fastapi", "uvicorn"
     )
 )
 
@@ -20,6 +20,14 @@ GEMINI_API_KEY = modal.Secret.from_name("GEMINI_API_TOKEN")
 
 local_code_mount = modal.Mount.from_local_dir(".", remote_path="/root")
 
+@app.asgi_app(
+    image=image, 
+    secrets=[HF_TOKEN, IRC_SERVER_URL, GEMINI_API_KEY], 
+    mounts=[local_code_mount]
+)
+def serve():
+    return fastapi_app
+    
 @app.function(
     image=image,
     secrets=[HF_TOKEN, IRC_SERVER_URL, GEMINI_API_KEY],
