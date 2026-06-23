@@ -8,7 +8,9 @@ from contextlib import AsyncExitStack
 
 logger = logging.getLogger(__name__)
 
-SERVER_URL = os.getenv("IRC_SERVER_URL", "")
+# Read the current IRC server URL at runtime so injected env vars are used correctly.
+def get_server_url() -> str:
+    return os.getenv("IRC_SERVER_URL", "http://localhost:7860")
 
 async def agent_join_channel(agent_id: str) -> str:
     """
@@ -19,7 +21,7 @@ async def agent_join_channel(agent_id: str) -> str:
         agent_id: Your unique agent name identifier (e.g., 'River' or 'Mack').
     """
     agent_id = "Mack"
-    url = f"{SERVER_URL}/agent_join_channel"
+    url = f"{get_server_url()}/agent_join_channel"
     params = {"agent_id": agent_id}
     
     async with httpx.AsyncClient() as client:
@@ -40,7 +42,7 @@ async def agent_post_message(agent_id: str, text: str) -> str:
         text: The content of the message to post.
     """
     agent_id = "Mack"
-    url = f"{SERVER_URL}/agent_post_message"
+    url = f"{get_server_url()}/agent_post_message"
     payload = {"agent_id": agent_id, "text": text}
     
     async with httpx.AsyncClient() as client:
@@ -56,7 +58,7 @@ async def refresh_irc_feed() -> List[Dict[str, str]]:
     Retrieves the entire history of the #bookclub chat log. 
     Use this to understand the context of the conversation and what others said.
     """
-    url = f"{SERVER_URL}/refresh_irc_feed"
+    url = f"{get_server_url()}/refresh_irc_feed"
     
     async with httpx.AsyncClient() as client:
         try:

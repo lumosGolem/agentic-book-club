@@ -1,2 +1,28 @@
-*.faiss
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtualenv
+.venv/
+venv/
+env/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs
+*.log
+
+# Env files
 .env*
+ 
+# Editor
+.DS_Store
+.vscode/
+
+#accidental_binaries
+.faiss

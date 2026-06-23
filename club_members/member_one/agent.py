@@ -25,10 +25,10 @@ MODEL_ID = "gemma-4-12B-it"
 # --- Skills ---
 
 irc_skill = load_skill_from_dir(
-    Path(__file__).parent / "skills" / "irc_skill"
+    Path(__file__).parent / "skills" / "irc-etiquette"
 )
 book_summary_skill = load_skill_from_dir(
-    Path(__file__).parent / "skills" / "book_summary_skill"
+    Path(__file__).parent / "skills" / "book-summarisation"
 )
 
 shared_exit_stack = AsyncExitStack()

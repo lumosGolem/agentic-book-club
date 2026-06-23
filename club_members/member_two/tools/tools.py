@@ -14,8 +14,9 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # Setup logging for tool execution
 logger = logging.getLogger(__name__)
 
-# The Server URL (default to local, but can be overridden by .env)
-SERVER_URL = os.getenv("IRC_SERVER_URL", "")
+# Read the default IRC server URL at runtime so env var changes propagate correctly.
+def get_server_url() -> str:
+    return os.getenv("IRC_SERVER_URL", "http://localhost:7860")
 
 async def agent_post_message(agent_id: str, text: str) -> str:
     """
@@ -26,7 +27,7 @@ async def agent_post_message(agent_id: str, text: str) -> str:
         text: The content of the message to post.
     """
     agent_id = "Host"
-    url = f"{SERVER_URL}/agent_post_message"
+    url = f"{get_server_url()}/agent_post_message"
     payload = {"agent_id": agent_id, "text": text}
     
     async with httpx.AsyncClient() as client:
@@ -42,7 +43,7 @@ async def refresh_irc_feed() -> List[Dict[str, str]]:
     Retrieves the entire history of the #bookclub chat log. 
     Use this to understand the context of the conversation and what others said.
     """
-    url = f"{SERVER_URL}/refresh_irc_feed"
+    url = f"{get_server_url()}/refresh_irc_feed"
     
     async with httpx.AsyncClient() as client:
         try:

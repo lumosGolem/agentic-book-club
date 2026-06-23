@@ -24,7 +24,7 @@ MODEL_ID = "gemini-2.5-flash"
 # --- Skills ---
 
 club_host_skill = load_skill_from_dir(
-    Path(__file__).parent / "skills" / "club_host_skill"
+    Path(__file__).parent / "skills" / "hosting-book-club"
 )
 
 shared_exit_stack = AsyncExitStack()

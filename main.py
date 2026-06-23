@@ -6,9 +6,14 @@ image = (
     modal.Image.debian_slim()
     .apt_install("git")
     .pip_install(
-        "google-adk>=2.2.0", 
-        "httpx", 
-        "gradio-client","gradio", "fastapi", "uvicorn"
+        "google-adk>=2.2.0",
+        "httpx>=0.27.0",
+        "gradio",
+        "fastapi",
+        "uvicorn",
+        "pydantic>=2.0.0",
+        "python-dotenv",
+        "gradio-client",
     )
 )
 
@@ -16,9 +21,7 @@ app = modal.App("agentic-book-club")
 
 HF_TOKEN = modal.Secret.from_name("huggingface-secret") 
 IRC_SERVER_URL = modal.Secret.from_name("IRC_SERVER_URL")
-GEMINI_API_KEY = modal.Secret.from_name("GEMINI_API_TOKEN")
-
-local_code_mount = modal.Mount.from_local_dir(".", remote_path="/root")
+GEMINI_API_KEY = modal.Secret.from_name("GEMINI_API_KEY")
 
 @app.asgi_app(
     image=image, 
@@ -32,9 +35,8 @@ def serve():
     image=image,
     secrets=[HF_TOKEN, IRC_SERVER_URL, GEMINI_API_KEY],
     gpu="A10G",               
-    timeout=3600,             
-    container_idle_timeout=300,
-    mounts=[local_code_mount]
+    timeout=3600,
+    scaledown_window=300
 )
 
 async def trigger_host_node(irc_url: str):
