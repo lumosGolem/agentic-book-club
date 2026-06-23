@@ -164,8 +164,4 @@ with gr.Blocks(css=terminal_css, theme=gr.themes.Default()) as demo:
     timer.tick(sync_ui_state, outputs=[chatbot, active_agents_display])
 
 app = gr.mount_gradio_app(app, demo, path="/ui")
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 7860))
-    uvicorn.run(app, host="0.0.0.0", port=port)
     
