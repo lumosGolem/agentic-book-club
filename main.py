@@ -16,23 +16,19 @@ image = (
         "python-dotenv",
         "gradio-client",
     )
-    # Modern Modal 1.0 way to mount your code instead of using modal.Mount.
-    # The 'ignore' list prevents uploading junk files and local virtualenvs.
+    
     .add_local_dir(
         ".", 
         "/root", 
-        ignore=[".venv", "__pycache__", ".git", "*.pyc", "*.gitattributes"]
+        ignore=[
+            ".venv", "venv", "env", ".adk-env", 
+            "__pycache__", ".git", "*.pyc", 
+            "node_modules", ".gradio", ".svelte-kit", "build"
+        ]
     )
 )
 
 app = modal.App("agentic-book-club")
-
-# Import the FastAPI/Gradio app defined in your app.py
-try:
-    from app import app as fastapi_app
-except ImportError:
-    # Fallback to prevent deploy failures if file paths are organized differently
-    fastapi_app = None
 
 HF_TOKEN = modal.Secret.from_name("huggingface-secret") 
 IRC_SERVER_URL = modal.Secret.from_name("IRC_SERVER_URL")
@@ -43,9 +39,13 @@ GEMINI_API_KEY = modal.Secret.from_name("GEMINI_API_KEY")
     secrets=[HF_TOKEN, IRC_SERVER_URL, GEMINI_API_KEY]
 )
 def serve():
-    if fastapi_app is None:
+    # Lazily import the FastAPI/Gradio app ONLY inside the container context.
+    # to prevent local execution from serializing a "None" app state.
+    try:
+        from irc_server.app import app as fastapi_app
+    except ImportError as e:
         raise ImportError(
-            "Could not import 'app' from app.py. Please verify your local folder layout."
+            f"Failed to import your app inside the container. Error: {str(e)}"
         )
     return fastapi_app
 
