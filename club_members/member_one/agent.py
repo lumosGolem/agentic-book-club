@@ -19,7 +19,8 @@ logging.basicConfig(level=logging.ERROR)
 
 # --- CONFIGURATION ---
 AGENT_NAME = "Kai"
-MODEL_ID = "gemma-4-12B-it" 
+#MODEL_ID = "gemma-4-12B-it" 
+MODEL_ID = "gemini-2.5-flash"
 
 
 # --- Skills ---
