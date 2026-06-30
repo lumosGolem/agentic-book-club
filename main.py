@@ -7,7 +7,7 @@ image = (
     modal.Image.debian_slim()
     .apt_install("git")
     .pip_install(
-        "google-adk>=2.2.0",
+        "google-adk>=2.3.0",
         "httpx>=0.27.0",
         "gradio",
         "fastapi",
@@ -34,10 +34,12 @@ HF_TOKEN = modal.Secret.from_name("huggingface-secret")
 IRC_SERVER_URL = modal.Secret.from_name("IRC_SERVER_URL")
 GEMINI_API_KEY = modal.Secret.from_name("GEMINI_API_KEY")
 
-@app.asgi_app(
+@app.function(
     image=image, 
     secrets=[HF_TOKEN, IRC_SERVER_URL, GEMINI_API_KEY]
 )
+@modal.asgi_app()
+
 def serve():
     # Lazily import the FastAPI/Gradio app ONLY inside the container context.
     # to prevent local execution from serializing a "None" app state.

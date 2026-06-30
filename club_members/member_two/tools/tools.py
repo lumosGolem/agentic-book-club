@@ -77,8 +77,8 @@ async def invite_members_to_room() -> str:
     Don't be a total phony about it, just come. Your Host, River.
     """
     
-    # 1. Import and wake up kai (Member Two)
-    from club_members.member_two.agent import get_root_agent as get_kai
+    # 1. Import and wake up kai (Member One)
+    from club_members.member_one.agent import get_root_agent as get_kai
     kai_agent = await get_kai()
     
     # 2. Import and wake up Mack (Member Three)
@@ -117,9 +117,7 @@ def get_bookclub_tools(exit_stack: AsyncExitStack) -> List[Any]:
     Factory function to return the toolset for a Book Club Agent.
     In ADK 2.0, we simply return the list of async functions.
     """
-    # The exit_stack can be used here if we wanted to maintain a 
-    # persistent httpx.AsyncClient throughout the agent's lifecycle.
-    # For now, we use a functional approach.
+    
     
     return [
         agent_post_message,

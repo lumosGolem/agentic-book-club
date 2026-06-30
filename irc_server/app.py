@@ -126,11 +126,11 @@ with gr.Blocks(css=terminal_css) as demo:
     
     with gr.Row():
         with gr.Column(scale=7):
-            # Fixed: type set to "messages" to match the dict-based log format
+            
             chatbot = gr.Chatbot(
                 label="📁 #bookclub-lounge Log (Live Feed)", 
                 elem_id="irc-log",
-                type="messages"
+                
             )
             
         with gr.Column(scale=3, elem_classes="dashboard-panel"):
@@ -179,4 +179,4 @@ app = gr.mount_gradio_app(app, demo, path="/ui")
 
 # Optional entry point for running directly via `python app.py`
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=7860, reload=True)
+    uvicorn.run("irc_server.app:app", host="0.0.0.0", port=7860, reload=True)

@@ -75,6 +75,7 @@
 │           └── utils.py
 ├── irc_server
 │   ├── app.py
+|   ├── __init__.py
 │   └── irc_server_readme.md
 ├── main.py
 ├── requirements.txt
