@@ -1,5 +1,6 @@
 import os
 import datetime
+import threading  # Guard against cross-thread race conditions
 import gradio as gr
 from fastapi import FastAPI, responses
 from pydantic import BaseModel
@@ -7,7 +8,7 @@ import uvicorn
 
 app = FastAPI()
 
-# --- GLOBAL STATE CHANNEL BUS ---
+# --- GLOBAL STATE CHANNEL BUS & CONCURRENCY CONTROL ---
 GLOBAL_CHANNEL_LOG = [
     {
         "role": "assistant", 
@@ -16,6 +17,7 @@ GLOBAL_CHANNEL_LOG = [
 ]
 
 ACTIVE_AGENTS = set()
+STATE_LOCK = threading.Lock()  # Protects against shared memory mutation issues
 
 class Message(BaseModel):
     agent_id: str
@@ -30,18 +32,21 @@ async def root_redirect():
 
 @app.post("/agent_join_channel")
 async def join(agent_id: str):
-    ACTIVE_AGENTS.add(agent_id)
     timestamp = datetime.datetime.now().strftime("%H:%M:%S")
     msg = {
         "role": "assistant", 
         "content": f"📡 [{timestamp}] *** JOIN: Agent '{agent_id}' has established connection to #bookclub"
     }
-    GLOBAL_CHANNEL_LOG.append(msg)
-    return {"status": "connected", "active_agents": list(ACTIVE_AGENTS)}
+    with STATE_LOCK:
+        ACTIVE_AGENTS.add(agent_id)
+        GLOBAL_CHANNEL_LOG.append(msg)
+        agents_list = list(ACTIVE_AGENTS)
+    return {"status": "connected", "active_agents": agents_list}
 
 @app.get("/refresh_irc_feed")
 async def refresh():
-    return GLOBAL_CHANNEL_LOG
+    with STATE_LOCK:
+        return list(GLOBAL_CHANNEL_LOG)
 
 @app.post("/agent_post_message")
 async def post(msg: Message):
@@ -50,8 +55,9 @@ async def post(msg: Message):
         "role": "user", 
         "content": f"[{timestamp}] <{msg.agent_id}> {msg.text}"
     }
-    GLOBAL_CHANNEL_LOG.append(entry)
-    ACTIVE_AGENTS.add(msg.agent_id)
+    with STATE_LOCK:
+        GLOBAL_CHANNEL_LOG.append(entry)
+        ACTIVE_AGENTS.add(msg.agent_id)
     return {"status": "posted"}
 
 def run_modal_orchestrator():
@@ -60,6 +66,7 @@ def run_modal_orchestrator():
         import modal
         
         try:
+            # Assumes MODAL_TOKEN_ID and MODAL_TOKEN_SECRET environment variables are set
             f = modal.Function.from_name("agentic-book-club", "trigger_host_node")
         except Exception:
             return "Error: Could not find deployed Modal function. Did you run 'modal deploy main.py' first?"
@@ -113,14 +120,17 @@ body, .gradio-container {
 }
 """
 
-with gr.Blocks() as demo:
+# Fixed: terminal_css passed to the Blocks configuration block
+with gr.Blocks(css=terminal_css) as demo:
     gr.HTML("<div id='terminal-header'>⚡ AGENTIC BOOK CLUB // IRC INTERACTION NODE ⚡</div>")
     
     with gr.Row():
         with gr.Column(scale=7):
+            # Fixed: type set to "messages" to match the dict-based log format
             chatbot = gr.Chatbot(
                 label="📁 #bookclub-lounge Log (Live Feed)", 
-                elem_id="irc-log"
+                elem_id="irc-log",
+                type="messages"
             )
             
         with gr.Column(scale=3, elem_classes="dashboard-panel"):
@@ -152,10 +162,13 @@ with gr.Blocks() as demo:
             )
 
     def sync_ui_state():
-        connected_list = list(ACTIVE_AGENTS)
+        # Fixed: Thread safety lock applied to prevent list mutation crashes while iterating
+        with STATE_LOCK:
+            connected_list = list(ACTIVE_AGENTS)
+            log_copy = list(GLOBAL_CHANNEL_LOG)
+            
         agents_text = ", ".join(connected_list) if connected_list else "No agents currently online"
-        # Make a copy of the list to prevent shared memory mutability issues during render
-        return list(GLOBAL_CHANNEL_LOG), agents_text
+        return log_copy, agents_text
 
     launch_btn.click(fn=run_modal_orchestrator, outputs=status_output)
     
@@ -163,4 +176,7 @@ with gr.Blocks() as demo:
     timer.tick(sync_ui_state, outputs=[chatbot, active_agents_display])
 
 app = gr.mount_gradio_app(app, demo, path="/ui")
-    
+
+# Optional entry point for running directly via `python app.py`
+if __name__ == "__main__":
+    uvicorn.run("app:app", host="0.0.0.0", port=7860, reload=True)
