@@ -113,14 +113,13 @@ body, .gradio-container {
 }
 """
 
-with gr.Blocks(css=terminal_css, theme=gr.themes.Default()) as demo:
+with gr.Blocks() as demo:
     gr.HTML("<div id='terminal-header'>⚡ AGENTIC BOOK CLUB // IRC INTERACTION NODE ⚡</div>")
     
     with gr.Row():
         with gr.Column(scale=7):
             chatbot = gr.Chatbot(
                 label="📁 #bookclub-lounge Log (Live Feed)", 
-                type="messages", 
                 elem_id="irc-log"
             )
             
